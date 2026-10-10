@@ -137,15 +137,29 @@ export function ruleTalkingPoints(d: Digest): PanelProps<'talking_points'> | nul
     .filter((c) => c.direction === 'inbound' && c.sentiment < 0)
     .sort((a, b) => a.sentiment - b.sentiment)[0];
 
+  if (d.lastMeeting?.notesExcerpt) {
+    const decision = d.lastMeeting.decisions[0];
+    points.push({
+      type: 'acknowledge',
+      headline: decision
+        ? decision.length > 60
+          ? `${decision.slice(0, 57)}…`
+          : decision
+        : `Carry forward: ${d.lastMeeting.title}`,
+      detail: decision
+        ? `From ${d.lastMeeting.title} (${d.lastMeeting.daysAgo}d ago). Confirm it still holds.`
+        : `Last notes (${d.lastMeeting.daysAgo}d ago): ${d.lastMeeting.notesExcerpt.slice(0, 160)}`,
+      evidence: evidenceRefs(d, [d.lastMeeting.id, d.commitments[0]?.id]),
+    });
+  }
+
   if (high.length || worstComm) {
     const lead = high[0];
     points.push({
       type: 'acknowledge',
-      headline: lead
-        ? `Acknowledge the issue: ${lead.title}`
-        : 'Acknowledge their recent frustration',
+      headline: lead ? lead.title : 'They are frustrated',
       detail:
-        (high.length ? `${high.length} high-priority tickets are open. ` : '') +
+        (high.length ? `${high.length} urgent tickets are open. ` : '') +
         (worstComm ? `${worstComm.sender} wrote ${quote(worstComm.snippet)}.` : ''),
       evidence: evidenceRefs(d, [...high.slice(0, 2).map((t) => t.id), worstComm?.id]),
     });
@@ -154,16 +168,16 @@ export function ruleTalkingPoints(d: Digest): PanelProps<'talking_points'> | nul
   for (const c of d.commitments.filter((c) => c.status === 'missed').slice(0, 1)) {
     points.push({
       type: 'commit',
-      headline: `Give a new date for the missed promise`,
-      detail: `"${c.text}" was promised at the last meeting and missed. Offer a date you can keep.`,
+      headline: `Set a new date you can keep`,
+      detail: `"${c.text}" was promised last meeting and missed.`,
       evidence: evidenceRefs(d, [c.id, d.work.overdue[0]?.id]),
     });
   }
   for (const c of d.commitments.filter((c) => c.status === 'open').slice(0, 1)) {
     points.push({
       type: 'commit',
-      headline: `Confirm the open promise: ${c.text}`,
-      detail: `Still open from the last meeting, due ${longDate(c.due)}.`,
+      headline: c.text.length > 60 ? `${c.text.slice(0, 57)}…` : c.text,
+      detail: `Still open from last meeting, due ${longDate(c.due)}.`,
       evidence: evidenceRefs(d, [c.id]),
     });
   }
@@ -172,8 +186,8 @@ export function ruleTalkingPoints(d: Digest): PanelProps<'talking_points'> | nul
   if (team) {
     points.push({
       type: 'ask',
-      headline: `Ask how the ${team.label.toLowerCase()} team is coping`,
-      detail: `Their usage is down ${abs(team.deltaPct)}%. Learn what they need most right now.`,
+      headline: `Ask how ${team.label} is managing`,
+      detail: `Their usage is down ${abs(team.deltaPct)}%. Find out what they need most.`,
       evidence: evidenceRefs(d, [team.id]),
     });
   }
@@ -182,8 +196,8 @@ export function ruleTalkingPoints(d: Digest): PanelProps<'talking_points'> | nul
     const renewal = d.scope.client.renewalInDays;
     points.push({
       type: 'risk',
-      headline: `Usage is down ${abs(d.usage.changePct)}%${renewal !== null ? ` with renewal in ${renewal} days` : ''}`,
-      detail: `Health is ${d.scope.client.health}. Treat the fix timeline as a renewal risk.`,
+      headline: `Usage down ${abs(d.usage.changePct)}%${renewal !== null ? ` · renewal in ${renewal}d` : ''}`,
+      detail: `Health is ${d.scope.client.health}. A slow fix puts renewal at risk.`,
       evidence: evidenceRefs(d, [d.usage.id, d.scope.client.id]),
     });
   }

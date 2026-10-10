@@ -107,9 +107,9 @@ describe('intent finalization', () => {
     expect(r.kind).toBe('intent');
     if (r.kind !== 'intent') return;
     expect(r.intent.scope).toEqual(ACME);
-    expect(r.intent.headline).toBe('Investigating Acme Corp usage drop');
+    expect(r.intent.headline).toBe('Acme Corp usage');
     expect(r.intent.summary).toBe(
-      "Investigating why Acme Corp's usage changed over the last 30 days.",
+      "What changed in Acme Corp's usage over the last 30 days.",
     );
   });
 
@@ -119,11 +119,11 @@ describe('intent finalization', () => {
     expect(mergeScope(null, {})).toEqual({ clientId: null, projectId: null, timeRange: '30d' });
   });
 
-  it('uses the Section 10.2 templates', () => {
-    expect(describeIntent('prepare', ACME, CLIENTS).headline).toBe('Preparing for Acme Corp');
+  it('uses short plain-language headline templates', () => {
+    expect(describeIntent('prepare', ACME, CLIENTS).headline).toBe('Acme Corp meeting');
     expect(describeIntent('triage', { ...ACME, clientId: null }, CLIENTS)).toEqual({
-      summary: 'Reviewing overdue work.',
-      headline: 'Reviewing overdue work',
+      summary: 'Work that is late or stuck.',
+      headline: 'Overdue work',
     });
     expect(describeIntent('overview', ACME, CLIENTS).headline).toBe('Overview');
   });

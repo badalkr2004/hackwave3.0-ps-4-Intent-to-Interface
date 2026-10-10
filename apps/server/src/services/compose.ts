@@ -48,9 +48,11 @@ const emptyData = (): Record<string, ComponentData> =>
 const asRecord = (props: unknown): Record<string, unknown> =>
   props && typeof props === 'object' ? (props as Record<string, unknown>) : {};
 
-async function loadData(intent: Intent): Promise<ScopeData | null> {
+async function loadData(session: Session, intent: Intent): Promise<ScopeData | null> {
   const db = getDbState() === 'up' ? getDb() : null;
-  return db ? loadScopeData(db, intent.scope, startOfDay(new Date())) : null;
+  return db
+    ? loadScopeData(db, intent.scope, startOfDay(new Date()), session.allowedClientIds)
+    : null;
 }
 
 /**
@@ -63,7 +65,7 @@ export async function compose(
   opts: ComposeOptions,
 ): Promise<Composition> {
   opts.onStage?.('fetching');
-  const data = await loadData(intent);
+  const data = await loadData(session, intent);
   const digest: Digest | null = data ? await buildDigest(data.ctx) : null;
 
   opts.onStage?.('planning');

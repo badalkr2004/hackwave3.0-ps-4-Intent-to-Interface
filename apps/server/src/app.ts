@@ -8,6 +8,7 @@ import { log } from './log';
 import { actionsRouter } from './routes/actions';
 import { healthRouter } from './routes/health';
 import { meRouter } from './routes/me';
+import { orgsRouter } from './routes/orgs';
 import { sessionRouter } from './routes/session';
 
 export function createApp(): express.Express {
@@ -28,10 +29,11 @@ export function createApp(): express.Express {
     app.all('/api/auth/*splat', toNodeHandler(auth));
   }
 
-  app.use(express.json({ limit: '100kb' }));
+  app.use(express.json({ limit: '500kb' }));
 
   app.use('/api', healthRouter);
   app.use('/api', meRouter);
+  app.use('/api', orgsRouter);
   app.use('/api', sessionRouter);
   app.use('/api', actionsRouter);
 

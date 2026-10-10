@@ -1,13 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import type { Exclusion } from '@gestalt/shared';
-import { SIZE_BREAKS } from '@gestalt/shared';
-import { confidenceWord, groupedExclusions, needAdjustment, sizeBecause } from '../src/shell/why';
+import {
+  confidenceWord,
+  fitLabel,
+  groupedExclusions,
+  needAdjustment,
+  sizeBecause,
+} from '../src/shell/why';
 
 describe('why lens helpers', () => {
-  it('explains size from the score breaks', () => {
-    expect(sizeBecause('L')).toBe(`Large because score above ${SIZE_BREAKS.L.toFixed(2)}`);
-    expect(sizeBecause('M')).toBe(`Medium because score above ${SIZE_BREAKS.M.toFixed(2)}`);
-    expect(sizeBecause('S')).toBe(`Small because score below ${SIZE_BREAKS.M.toFixed(2)}`);
+  it('explains size in plain language', () => {
+    expect(sizeBecause('L')).toBe('Shown large because it is central');
+    expect(sizeBecause('M')).toBe('Shown medium for context');
+    expect(sizeBecause('S')).toBe('Shown small as supporting detail');
+  });
+
+  it('labels fit without exposing raw scores', () => {
+    expect(fitLabel(0.9)).toBe('Very useful here');
+    expect(fitLabel(0.6)).toBe('Useful here');
+    expect(fitLabel(0.2)).toBe('Supporting detail');
   });
 
   it('groups exclusions in the spec order and drops empty groups', () => {
@@ -37,12 +48,12 @@ describe('why lens helpers', () => {
     expect(needAdjustment(needs, 'open_issues')).toBe('Raised because tickets piled up.');
   });
 
-  it('labels the top interpretation Likely and the rest Possible', () => {
+  it('labels the top interpretation Best match and the rest Also possible', () => {
     const i = [
       { id: 'i1', confidence: 0.48 },
       { id: 'i2', confidence: 0.42 },
     ];
-    expect(confidenceWord(i, 'i1')).toBe('Likely');
-    expect(confidenceWord(i, 'i2')).toBe('Possible');
+    expect(confidenceWord(i, 'i1')).toBe('Best match');
+    expect(confidenceWord(i, 'i2')).toBe('Also possible');
   });
 });

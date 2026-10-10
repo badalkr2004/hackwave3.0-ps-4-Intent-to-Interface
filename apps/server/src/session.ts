@@ -5,6 +5,13 @@ export interface Session {
   id: string;
   /** Signed-in Better Auth user, when present; used to persist pins/dismissals. */
   userId: string | null;
+  /** Active organization for this workspace session; null when auth is off. */
+  organizationId: string | null;
+  /**
+   * Clients the session may see. `null` = unrestricted (auth disabled).
+   * Empty array = signed-in org with no linked clients.
+   */
+  allowedClientIds: readonly string[] | null;
   /** Compositions, newest last; the last one is on screen. */
   stack: UISpec[];
   pinned: Set<string>;
@@ -24,6 +31,8 @@ const sessions = new Map<string, Session>();
 
 export function createSession(opts?: {
   userId?: string | null;
+  organizationId?: string | null;
+  allowedClientIds?: readonly string[] | null;
   pinned?: readonly string[];
   dismissed?: readonly string[];
 }): Session {
@@ -31,6 +40,8 @@ export function createSession(opts?: {
   const session: Session = {
     id: randomUUID(),
     userId: opts?.userId ?? null,
+    organizationId: opts?.organizationId ?? null,
+    allowedClientIds: opts?.allowedClientIds ?? null,
     stack: [],
     pinned: new Set(opts?.pinned ?? []),
     dismissed: new Set(opts?.dismissed ?? []),

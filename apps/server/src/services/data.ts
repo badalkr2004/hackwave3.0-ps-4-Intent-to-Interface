@@ -27,12 +27,18 @@ export function clearDataCache(): void {
   cache.clear();
 }
 
-function createContext(db: Db, scope: Scope, today: Date): LoadContext {
+function createContext(
+  db: Db,
+  scope: Scope,
+  today: Date,
+  allowedClientIds: readonly string[] | null,
+): LoadContext {
   const memo = new Map<string, Promise<unknown>>();
   const ctx: LoadContext = {
     db,
     scope,
     today,
+    allowedClientIds,
     once<T>(key: string, fn: () => Promise<T>): Promise<T> {
       let p = memo.get(key) as Promise<T> | undefined;
       if (!p) {
@@ -72,19 +78,25 @@ async function runLoader<K extends ComponentId>(
 }
 
 /** Runs all loaders in parallel for a scope. Results are cached for 60 s per scope and day. */
-export function loadScopeData(db: Db, scope: Scope, today: Date): Promise<ScopeData> {
+export function loadScopeData(
+  db: Db,
+  scope: Scope,
+  today: Date,
+  allowedClientIds: readonly string[] | null = null,
+): Promise<ScopeData> {
   const key = JSON.stringify([
     db.schema,
     scope.clientId,
     scope.projectId,
     scope.timeRange,
     toISODate(today),
+    allowedClientIds ? [...allowedClientIds].sort() : null,
   ]);
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.data;
 
   const data = (async () => {
-    const ctx = createContext(db, scope, today);
+    const ctx = createContext(db, scope, today, allowedClientIds);
     const ids = Object.keys(REGISTRY).filter(isComponentId);
     const loaded = await Promise.all(ids.map(async (id) => [id, await ctx.load(id)] as const));
     return { ctx, props: Object.fromEntries(loaded) as ScopeData['props'] };

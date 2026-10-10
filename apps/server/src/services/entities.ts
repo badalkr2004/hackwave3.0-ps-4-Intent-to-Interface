@@ -11,7 +11,9 @@ export interface Entities {
 
 const EMPTY: Entities = { clients: [], projects: [], lowestHealthClientId: null };
 const TTL_MS = 60_000;
-let cached: { db: Db; at: number; value: Promise<Entities> } | null = null;
+
+type CacheKey = string;
+const cache = new Map<CacheKey, { at: number; value: Promise<Entities> }>();
 
 /** "Acme Corp" -> ["acme"]: the name without company suffixes, plus its first word. */
 export function aliasesFor(name: string): string[] {
@@ -21,17 +23,40 @@ export function aliasesFor(name: string): string[] {
   return [...new Set([bare, first])].filter((a) => a && a !== lower);
 }
 
-export function loadEntities(db: Db | null): Promise<Entities> {
+/**
+ * Loads clients/projects visible in the workspace.
+ * When `allowedClientIds` is set, only those clients (and their projects) are returned.
+ * An empty array yields an empty portfolio — never the global demo set.
+ */
+export function loadEntities(
+  db: Db | null,
+  allowedClientIds: readonly string[] | null = null,
+): Promise<Entities> {
   if (!db) return Promise.resolve(EMPTY);
-  if (cached && cached.db === db && Date.now() - cached.at < TTL_MS) return cached.value;
+  if (allowedClientIds && allowedClientIds.length === 0) return Promise.resolve(EMPTY);
+
+  const key = `${db.schema}:${allowedClientIds ? [...allowedClientIds].sort().join(',') : '*'}`;
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.value;
+
   const value = (async () => {
     try {
-      const [clients, projects] = await Promise.all([
-        db.sql<{ id: string; name: string; health: number }[]>`
-          SELECT id, name, health FROM ${db.table('clients')} ORDER BY name`,
-        db.sql<{ id: string; name: string; client_id: string | null }[]>`
-          SELECT id, name, client_id FROM ${db.table('projects')} ORDER BY name`,
-      ]);
+      const clients = allowedClientIds
+        ? await db.sql<{ id: string; name: string; health: number }[]>`
+            SELECT id, name, health FROM ${db.table('clients')}
+            WHERE id = ANY(${[...allowedClientIds]})
+            ORDER BY name`
+        : await db.sql<{ id: string; name: string; health: number }[]>`
+            SELECT id, name, health FROM ${db.table('clients')} ORDER BY name`;
+
+      const projects = allowedClientIds
+        ? await db.sql<{ id: string; name: string; client_id: string | null }[]>`
+            SELECT id, name, client_id FROM ${db.table('projects')}
+            WHERE client_id = ANY(${[...allowedClientIds]})
+            ORDER BY name`
+        : await db.sql<{ id: string; name: string; client_id: string | null }[]>`
+            SELECT id, name, client_id FROM ${db.table('projects')} ORDER BY name`;
+
       const lowest = [...clients].sort(
         (a, b) => a.health - b.health || a.id.localeCompare(b.id),
       )[0];
@@ -44,10 +69,10 @@ export function loadEntities(db: Db | null): Promise<Entities> {
       log.warn('Could not load entities', {
         error: err instanceof Error ? err.message : String(err),
       });
-      cached = null;
+      cache.delete(key);
       return EMPTY;
     }
   })();
-  cached = { db, at: Date.now(), value };
+  cache.set(key, { at: Date.now(), value });
   return value;
 }

@@ -96,24 +96,20 @@ export function runAuction(input: AuctionInput): AuctionResult {
         .map((n) => ({ need: n, fit: a.fit, score: n.priority * a.fit * (0.7 + 0.3 * signal) })),
     );
     if (matches.length === 0) {
-      exclude('not_relevant', 'Not needed for this kind of task.');
+      exclude('not_relevant', 'Does not help with this job.');
       continue;
     }
 
     const best = matches.reduce((a, b) => (b.score > a.score ? b : a));
     const d = data[m.id];
     if (!d || d.props === null || d.props === undefined) {
-      exclude('no_data', 'No data in the selected scope.', best.score);
+      exclude('no_data', 'No facts available for what you selected.', best.score);
       continue;
     }
 
     const isPinned = pinned.has(m.id);
     if (best.score < SCORE_THRESHOLD && !isPinned) {
-      exclude(
-        'low_score',
-        `Low relevance (score ${best.score.toFixed(2)}) for this task.`,
-        best.score,
-      );
+      exclude('low_score', 'Other items help more right now.', best.score);
       continue;
     }
 
@@ -180,8 +176,7 @@ export function runAuction(input: AuctionInput): AuctionResult {
         componentId: c.componentId,
         title: c.manifest.title,
         reason: 'no_space',
-        detail:
-          'Left out to keep the workspace readable; it would have ranked below the panels shown.',
+        detail: 'Did not fit on screen without crowding the view.',
         score: round(c.score),
       });
     }

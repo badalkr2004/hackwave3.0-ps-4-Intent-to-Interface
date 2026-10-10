@@ -3,38 +3,38 @@
     "points": [
       {
         "type": "acknowledge",
-        "headline": "Own the export failures before they raise them",
-        "detail": "Large CSV exports time out and scheduled exports fail silently since v2.4. Rohan said it is blocking their month-end close.",
+        "headline": "Exports are failing for them",
+        "detail": "Large CSV exports time out and scheduled ones fail silently since v2.4. Rohan said it blocks month-end close.",
         "evidence": ["ticket:T-1", "ticket:T-2", "comm:c1"]
       },
       {
         "type": "acknowledge",
-        "headline": "We missed the scheduled exports promise",
-        "detail": "Scheduled exports were committed at the Q3 review and the date has passed. Say so plainly.",
+        "headline": "We missed the export promise",
+        "detail": "Scheduled exports were promised at the Q3 review and that date has passed. Say so plainly.",
         "evidence": ["commitment:m1-1"]
       },
       {
         "type": "ask",
-        "headline": "Ask how finance is closing the month today",
-        "detail": "Finance usage fell the most and Priya says they reconcile by hand. Learn the cost and what would unblock them first.",
+        "headline": "How is finance closing the month?",
+        "detail": "Finance usage fell most, and Priya says they reconcile by hand. Learn the cost and what would unblock them.",
         "evidence": ["seg:team:finance", "comm:c3"]
       },
       {
         "type": "commit",
-        "headline": "Commit to a fix date tied to the export hotfix",
-        "detail": "The export pagination fix is in progress but late. Give a date you can keep and offer a status update until it ships.",
+        "headline": "Give a real fix date",
+        "detail": "The export fix is late. Offer a date you can keep and a status update until it ships.",
         "evidence": ["task:T1", "commitment:m1-1"]
       },
       {
         "type": "commit",
-        "headline": "Book the finance onboarding session",
-        "detail": "The dedicated finance onboarding is still open from the last review. Propose times in this meeting.",
+        "headline": "Book finance onboarding",
+        "detail": "Dedicated finance onboarding is still open from the last review. Propose times in this meeting.",
         "evidence": ["commitment:m1-3"]
       },
       {
         "type": "risk",
-        "headline": "Usage drop and a weak health score ahead of renewal",
-        "detail": "Usage is down sharply since v2.4 and health is 54. A second missed date would put the renewal at risk.",
+        "headline": "Usage down before renewal",
+        "detail": "Usage fell sharply since v2.4 and health is 54. Another missed date puts renewal at risk.",
         "evidence": ["usage:acme", "client:acme"]
       }
     ]
@@ -42,23 +42,23 @@
   "hypothesis_list:acme": {
     "hypotheses": [
       {
-        "title": "The v2.4 export pipeline broke large and scheduled exports",
+        "title": "v2.4 broke large and scheduled exports",
         "confidence": "high",
-        "explanation": "v2.4 replaced the export pipeline right before the drop, export usage fell about 71%, and three open tickets describe export timeouts, silent failures and a missing column.",
+        "explanation": "v2.4 changed exports just before the drop; export use fell about 71%, and three tickets describe timeouts and silent failures.",
         "evidence": ["rel:v2.4", "seg:feature:export", "ticket:T-1", "ticket:T-2"],
-        "howToConfirm": "Compare export error and timeout rates for Acme before and after v2.4."
+        "howToConfirm": "Compare Acme export errors before and after v2.4."
       },
       {
-        "title": "Finance stopped using the product for month-end work",
+        "title": "Finance left the product for month-end",
         "confidence": "medium",
-        "explanation": "Finance usage fell about 62%, and Acme says finance is reconciling by hand because scheduled exports stopped arriving.",
+        "explanation": "Finance use fell about 62%, and they say they reconcile by hand because scheduled exports stopped.",
         "evidence": ["seg:team:finance", "comm:c3", "ticket:T-2"],
-        "howToConfirm": "Ask Priya whether finance moved month-end reporting to spreadsheets."
+        "howToConfirm": "Ask Priya if finance moved month-end reporting to spreadsheets."
       },
       {
-        "title": "Seat cleanup reduced the number of active users",
+        "title": "Fewer seats, not less engagement",
         "confidence": "low",
-        "explanation": "A billing ticket questions the seat count, so fewer active seats could explain a small part of the drop.",
+        "explanation": "A billing ticket questions the seat count, so a smaller roster could explain part of the drop.",
         "evidence": ["ticket:T-4"],
         "howToConfirm": "Compare active seats this month with the last invoice."
       }

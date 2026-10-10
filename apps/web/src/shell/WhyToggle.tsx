@@ -1,16 +1,14 @@
-import { CircleHelp } from 'lucide-react';
-
 export function WhyToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
       aria-pressed={on}
-      aria-label="Why lens"
-      title="Why lens (?)"
+      aria-label={on ? 'Hide explanations' : 'Explain this view'}
+      title="Explain this view (?)"
       onClick={onToggle}
-      className={`inline-flex size-11 items-center justify-center rounded-md border text-sm ${on ? 'border-accent bg-accent-bg text-accent-text' : 'border-border bg-surface text-text hover:bg-surface-2'}`}
+      className={`inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium ${on ? 'border-accent bg-accent-bg text-accent-text' : 'border-border bg-surface text-text hover:bg-surface-2'}`}
     >
-      <CircleHelp aria-hidden className="size-4" />
+      {on ? 'Hide why' : 'Explain'}
     </button>
   );
 }

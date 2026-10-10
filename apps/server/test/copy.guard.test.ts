@@ -61,6 +61,13 @@ const digest: Digest = {
   ],
   work: { overdue: [], blockedBy: [], ownerLoad: [] },
   meeting: null,
+  lastMeeting: {
+    id: 'meeting:m1',
+    title: 'Q3 Business Review',
+    daysAgo: 43,
+    notesExcerpt: 'Exports failing; finance reconciling by hand.',
+    decisions: ['Prioritize export hotfix'],
+  },
 };
 
 const point = (evidence: string[]) => ({

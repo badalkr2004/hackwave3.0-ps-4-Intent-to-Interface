@@ -11,6 +11,7 @@ export default defineModule({
   async loader(ctx) {
     const clientId = ctx.scope.clientId;
     if (!clientId) return null;
+    if (ctx.allowedClientIds && !ctx.allowedClientIds.includes(clientId)) return null;
     const { db } = ctx;
     const rows = await db.sql<
       { id: string; title: string; date: Date; notes: string | null; commitments: unknown }[]

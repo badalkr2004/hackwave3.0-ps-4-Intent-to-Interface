@@ -1,5 +1,5 @@
 import type { TaskStatus } from '@gestalt/shared';
-import { dayOf, type LoadContext } from './types';
+import { dayOf, effectiveClientIds, type LoadContext } from './types';
 
 export interface TaskRow {
   id: string;
@@ -19,7 +19,10 @@ export interface TaskRow {
 export function loadTasks(ctx: LoadContext): Promise<TaskRow[]> {
   return ctx.once('tasks', async () => {
     const { db } = ctx;
+    const { sql } = db;
     const today = dayOf(ctx, 0);
+    const allowed = ctx.allowedClientIds;
+    if (allowed && allowed.length === 0) return [];
     return db.sql<TaskRow[]>`
       SELECT t.id, t.title, t.project_id, p.name AS project_name, p.client_id,
         t.owner_id, o.name AS owner_name, to_char(t.due, 'YYYY-MM-DD') AS due, t.status,
@@ -29,14 +32,17 @@ export function loadTasks(ctx: LoadContext): Promise<TaskRow[]> {
       FROM ${db.table('tasks')} t
       JOIN ${db.table('projects')} p ON p.id = t.project_id
       LEFT JOIN ${db.table('people')} o ON o.id = t.owner_id
+      ${allowed ? sql`WHERE p.client_id = ANY(${[...allowed]})` : sql``}
       ORDER BY t.due, t.id`;
   });
 }
 
-/** Tasks within the scope's project, else the scope's client, else everything. */
+/** Tasks within the scope's project, else the scope's client, else the org allow-list. */
 export function scopedTasks(ctx: LoadContext, tasks: TaskRow[]): TaskRow[] {
   const { projectId, clientId } = ctx.scope;
   if (projectId) return tasks.filter((t) => t.project_id === projectId);
+  const allowed = effectiveClientIds(ctx);
   if (clientId) return tasks.filter((t) => t.client_id === clientId);
+  if (allowed) return tasks.filter((t) => t.client_id && allowed.includes(t.client_id));
   return tasks;
 }

@@ -3,6 +3,16 @@ import { ArrowRight, House, LoaderCircle } from 'lucide-react';
 import { isTypingTarget, markIntentEdited } from '../lib/typing';
 import { INTENT_INPUT_ID } from './ids';
 
+/** Short chips for the demo lines — full text still submits. */
+function chipLabel(prompt: string): string {
+  const t = prompt.toLowerCase();
+  if (t.includes('prepare') && t.includes('acme')) return 'Prep Acme meeting';
+  if (t.includes('usage drop')) return 'Why usage dropped';
+  if (t.includes('overdue')) return 'What’s overdue';
+  if (t.includes('look into')) return 'Look into Acme';
+  return prompt.length > 36 ? `${prompt.slice(0, 34)}…` : prompt;
+}
+
 export interface IntentBarProps {
   busy: boolean;
   demoPrompts: string[];
@@ -39,11 +49,11 @@ export function IntentBar({
   const submit = (value: string) => {
     const trimmed = value.trim();
     if (!trimmed) {
-      setError('Enter what you are working on.');
+      setError('Say what you need help with.');
       return;
     }
     if (trimmed.length > 500) {
-      setError('Keep the request under 500 characters.');
+      setError('Keep it under 500 characters.');
       return;
     }
     setError(null);
@@ -59,7 +69,7 @@ export function IntentBar({
     <div className="flex flex-col gap-2">
       <form
         role="search"
-        aria-label="Workspace intent"
+        aria-label="What you are working on"
         onSubmit={onFormSubmit}
         className="flex gap-2"
       >
@@ -85,14 +95,14 @@ export function IntentBar({
         />
         <button
           type="submit"
-          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-surface"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-accent"
         >
           {busy ? (
             <LoaderCircle aria-hidden className="size-4 animate-spin" />
           ) : (
             <ArrowRight aria-hidden className="size-4" />
           )}
-          Compose
+          Show
         </button>
         <button
           type="button"
@@ -100,7 +110,8 @@ export function IntentBar({
           className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-text hover:bg-surface-2"
         >
           <House aria-hidden className="size-4" />
-          Home
+          <span className="hidden sm:inline">Overview</span>
+          <span className="sm:hidden">Home</span>
         </button>
       </form>
       <p id={hintId} className="sr-only">
@@ -112,18 +123,19 @@ export function IntentBar({
         </p>
       )}
       {showSuggestions && !busy && demoPrompts.length > 0 && (
-        <ul aria-label="Suggestions" className="flex flex-wrap gap-2">
+        <ul aria-label="Try one of these" className="flex flex-wrap gap-2">
           {demoPrompts.map((p) => (
             <li key={p}>
               <button
                 type="button"
+                title={p}
                 onClick={() => {
                   setText(p);
                   submit(p);
                 }}
-                className="min-h-8 rounded-full border border-border bg-surface px-3 text-xs text-muted hover:border-accent hover:text-text"
+                className="min-h-8 rounded-md border border-border bg-bg px-2.5 text-xs text-muted hover:border-border-strong hover:text-text"
               >
-                {p}
+                {chipLabel(p)}
               </button>
             </li>
           ))}

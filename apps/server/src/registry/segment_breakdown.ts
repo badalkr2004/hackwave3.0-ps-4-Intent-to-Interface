@@ -8,6 +8,7 @@ export default defineModule({
   async loader(ctx) {
     const clientId = ctx.scope.clientId;
     if (!clientId) return null;
+    if (ctx.allowedClientIds && !ctx.allowedClientIds.includes(clientId)) return null;
     const analysis = await loadUsageAnalysis(ctx);
     if (!analysis) return null;
     const { db } = ctx;

@@ -1,14 +1,18 @@
 import { loadClients, loadUsageAnalyses } from './usage';
-import { defineModule, dayOf } from './types';
+import { defineModule, dayOf, effectiveClientIds } from './types';
 
 export default defineModule({
   id: 'portfolio_health',
   async loader(ctx) {
     const { db } = ctx;
+    const { sql } = db;
+    const allowed = effectiveClientIds(ctx);
+    if (allowed && allowed.length === 0) return null;
     const [rows, usage] = await Promise.all([
       db.sql<{ id: string; renewal_in_days: number | null }[]>`
         SELECT id, (renewal_date - ${dayOf(ctx, 0)}::date)::int AS renewal_in_days
-        FROM ${db.table('clients')}`,
+        FROM ${db.table('clients')}
+        ${allowed ? sql`WHERE id = ANY(${[...allowed]})` : sql``}`,
       loadUsageAnalyses(ctx),
     ]);
     const clients = await loadClients(ctx);

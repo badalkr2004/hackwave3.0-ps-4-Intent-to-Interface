@@ -12,6 +12,18 @@ function createAuth() {
     return null;
   }
 
+  const socialProviders =
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : undefined;
+
+  if (socialProviders) log.info('Google OAuth enabled for Better Auth.');
+
   return betterAuth({
     database: drizzleAdapter(db, {
       provider: 'pg',
@@ -29,6 +41,7 @@ function createAuth() {
       enabled: true,
       minPasswordLength: 8,
     },
+    socialProviders,
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,

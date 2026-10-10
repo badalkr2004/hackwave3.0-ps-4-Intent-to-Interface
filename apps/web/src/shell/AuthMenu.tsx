@@ -1,48 +1,43 @@
-import { startTransition, useEffect, useId, useState, type FormEvent } from 'react';
-import { LoaderCircle, LogIn, LogOut, UserRound } from 'lucide-react';
+import { startTransition, useEffect, useState } from 'react';
+import { Building2, LoaderCircle, LogIn, LogOut } from 'lucide-react';
 import { authClient } from '../lib/auth';
-import { fetchMe } from '../lib/api';
+import { fetchMe, type OrgSummary } from '../lib/orgApi';
 
 type User = { id: string; name: string; email: string };
 
 /**
- * Optional sign-in. The workspace works without an account; signing in persists pins/dismissals.
+ * Header auth control. Sign-in uses the enterprise /login page — not an inline card.
  */
-export function AuthMenu({ onAuthChange }: { onAuthChange?: () => void }) {
+export function AuthMenu({
+  onAuthChange,
+  activeOrg,
+}: {
+  onAuthChange?: () => void;
+  activeOrg?: OrgSummary | null;
+}) {
   const [authEnabled, setAuthEnabled] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [org, setOrg] = useState<OrgSummary | null>(activeOrg ?? null);
   const [busy, setBusy] = useState(false);
-  const formId = useId();
 
-  const applyMe = (me: Awaited<ReturnType<typeof fetchMe>>) => {
-    startTransition(() => {
-      setAuthEnabled(me.authEnabled);
-      setUser(me.user);
-    });
-  };
-
-  const refresh = async () => {
-    try {
-      applyMe(await fetchMe());
-    } catch {
-      startTransition(() => {
-        setAuthEnabled(false);
-        setUser(null);
-      });
-    }
-  };
+  useEffect(() => {
+    setOrg(activeOrg ?? null);
+  }, [activeOrg]);
 
   useEffect(() => {
     let cancelled = false;
     void fetchMe()
       .then((me) => {
-        if (!cancelled) applyMe(me);
+        if (cancelled) return;
+        startTransition(() => {
+          setAuthEnabled(me.authEnabled);
+          setUser(me.user);
+          if (!activeOrg) {
+            const next =
+              me.orgs.find((o) => o.id === me.activeOrganizationId) ?? me.orgs[0] ?? null;
+            setOrg(next);
+          }
+        });
       })
       .catch(() => {
         if (!cancelled) {
@@ -55,39 +50,16 @@ export function AuthMenu({ onAuthChange }: { onAuthChange?: () => void }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeOrg]);
 
   if (!authEnabled) return null;
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      if (mode === 'signup') {
-        const { error: err } = await authClient.signUp.email({ name, email, password });
-        if (err) throw new Error(err.message || 'Could not create account');
-      } else {
-        const { error: err } = await authClient.signIn.email({ email, password });
-        if (err) throw new Error(err.message || 'Could not sign in');
-      }
-      setOpen(false);
-      setPassword('');
-      await refresh();
-      onAuthChange?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
-    } finally {
-      setBusy(false);
-    }
-  };
 
   const signOut = async () => {
     setBusy(true);
     try {
       await authClient.signOut();
-      await refresh();
       onAuthChange?.();
+      window.location.assign('/login');
     } finally {
       setBusy(false);
     }
@@ -96,12 +68,21 @@ export function AuthMenu({ onAuthChange }: { onAuthChange?: () => void }) {
   if (user) {
     return (
       <div className="flex items-center gap-2">
-        <span
-          className="hidden max-w-[10rem] truncate text-xs text-muted sm:inline"
-          title={user.email}
+        {org && (
+          <span
+            className="hidden max-w-[12rem] truncate text-xs text-muted sm:inline"
+            title={org.name}
+          >
+            {org.name}
+          </span>
+        )}
+        <a
+          href="/org"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-text hover:bg-surface-2"
         >
-          {user.name}
-        </span>
+          <Building2 aria-hidden className="size-4" />
+          <span className="hidden sm:inline">Organization</span>
+        </a>
         <button
           type="button"
           onClick={() => void signOut()}
@@ -120,91 +101,12 @@ export function AuthMenu({ onAuthChange }: { onAuthChange?: () => void }) {
   }
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        aria-expanded={open}
-        aria-controls={formId}
-        onClick={() => setOpen((o) => !o)}
-        className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-text hover:bg-surface-2"
-      >
-        <LogIn aria-hidden className="size-4" />
-        Sign in
-      </button>
-      {open && (
-        <form
-          id={formId}
-          onSubmit={(e) => void submit(e)}
-          className="absolute top-full right-0 z-40 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-border bg-surface p-4 shadow-panel"
-        >
-          <p className="flex items-center gap-2 text-sm font-medium text-text">
-            <UserRound aria-hidden className="size-4" />
-            {mode === 'signin' ? 'Sign in' : 'Create account'}
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            Optional. Saves your pins and dismissals across reloads.
-          </p>
-          {mode === 'signup' && (
-            <label className="mt-3 block text-xs text-muted">
-              Name
-              <input
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 min-h-10 w-full rounded-md border border-border bg-bg px-2 text-sm text-text"
-              />
-            </label>
-          )}
-          <label className="mt-3 block text-xs text-muted">
-            Email
-            <input
-              required
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 min-h-10 w-full rounded-md border border-border bg-bg px-2 text-sm text-text"
-            />
-          </label>
-          <label className="mt-3 block text-xs text-muted">
-            Password
-            <input
-              required
-              type="password"
-              minLength={8}
-              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 min-h-10 w-full rounded-md border border-border bg-bg px-2 text-sm text-text"
-            />
-          </label>
-          {error && (
-            <p role="alert" className="mt-2 text-xs text-danger">
-              {error}
-            </p>
-          )}
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button
-              type="submit"
-              disabled={busy}
-              className="inline-flex min-h-10 items-center gap-2 rounded-md bg-accent px-3 text-sm font-medium text-surface"
-            >
-              {busy && <LoaderCircle aria-hidden className="size-4 animate-spin" />}
-              {mode === 'signin' ? 'Sign in' : 'Sign up'}
-            </button>
-            <button
-              type="button"
-              className="text-xs text-accent-text underline"
-              onClick={() => {
-                setMode((m) => (m === 'signin' ? 'signup' : 'signin'));
-                setError(null);
-              }}
-            >
-              {mode === 'signin' ? 'Need an account?' : 'Have an account?'}
-            </button>
-          </div>
-        </form>
-      )}
-    </div>
+    <a
+      href="/login"
+      className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-text hover:bg-surface-2"
+    >
+      <LogIn aria-hidden className="size-4" />
+      Sign in
+    </a>
   );
 }

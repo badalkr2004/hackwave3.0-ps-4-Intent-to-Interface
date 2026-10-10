@@ -31,17 +31,21 @@ Use only need types from the provided list. Return nothing else.`;
 
 export const TALKING_POINTS_SYSTEM = `You help a customer success manager prepare for a client meeting tomorrow.
 Write talking points grounded ONLY in the facts provided. Never invent numbers, names, dates or commitments.
-Cover: what to acknowledge (problems the client has felt), what to ask (to learn their priorities and impact),
-what to commit to (concrete, only if supported by an open project or task in the facts), and risks to the relationship.
-Tone: direct, professional, specific. Each headline under 90 characters; each detail one or two sentences.
-Cite evidence ids exactly as given in the digest. If you cannot support a point with evidence, omit it.`;
+Prefer the last meeting notes (lastMeeting) and open commitments when they exist — carry forward
+promises, decisions, and unfinished action items into acknowledge / ask / commit points.
+Cover: what to acknowledge (problems the client has felt), what to ask, what to commit to
+(concrete, only if supported by an open project, task, or meeting commitment), and risks.
+Tone: plain English a busy non-technical manager can skim. No jargon, no hype, no filler.
+Each headline under 70 characters and under 10 words. Each detail one short sentence.
+Cite evidence ids exactly as given in the digest (including meeting:… and commitment:…).
+If you cannot support a point with evidence, omit it.`;
 
-export const HYPOTHESES_SYSTEM = `You are a product analyst explaining a drop in a client's usage.
-Propose ranked hypotheses grounded ONLY in the provided facts: usage segments, release notes, tickets, and communications.
-Never invent data. Prefer hypotheses that several independent facts support (for example, a release that touched a feature,
-tickets about that feature, and a usage drop concentrated in the same feature and in the teams that use it).
-Include at least one hypothesis that is less likely but worth ruling out, with low confidence.
-Every hypothesis must cite evidence ids exactly as given. Include a concrete way to confirm it.`;
+export const HYPOTHESES_SYSTEM = `You explain a drop in a client's usage in plain language.
+Propose ranked ideas grounded ONLY in the provided facts: usage segments, release notes, tickets, and communications.
+Never invent data. Prefer ideas that several independent facts support.
+Include at least one less-likely idea worth ruling out, with low confidence.
+Titles under 12 words. Explanations one or two short sentences. No jargon.
+Every idea must cite evidence ids exactly as given. Include a concrete way to confirm it.`;
 
 // SPEC-NOTE: Section 10.4 gives the draft-email schema and constraints but no prompt text.
 export const EMAIL_SYSTEM = `You draft a short email from a customer success manager to a client contact.

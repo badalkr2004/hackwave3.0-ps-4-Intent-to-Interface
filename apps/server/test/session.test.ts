@@ -1,6 +1,7 @@
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { SessionResponse, SpecResponse } from '@gestalt/shared';
+import { auth } from '../src/auth';
 import { createApp } from '../src/app';
 import { setDbState } from '../src/db/state';
 import { env } from '../src/env';
@@ -28,7 +29,8 @@ describe('supersede (Section 9)', () => {
 });
 
 // Overview compositions only (no LLM calls); reads the configured schema, writes nothing.
-describe.skipIf(!env.DATABASE_URL)('session routes', { timeout: 30_000 }, () => {
+// When Better Auth is on, /session requires a signed-in org member — skip anonymous route tests.
+describe.skipIf(!env.DATABASE_URL || Boolean(auth))('session routes', { timeout: 30_000 }, () => {
   let baseUrl = '';
   let close: () => void = () => {};
 

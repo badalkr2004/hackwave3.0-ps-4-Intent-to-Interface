@@ -36,6 +36,8 @@ const EnvSchema = z.object({
   // Public origin the browser uses (Vite in dev) so auth cookies stick on the proxied host.
   BETTER_AUTH_URL: z.string().url().default('http://localhost:5173'),
   WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

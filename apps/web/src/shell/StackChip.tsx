@@ -12,7 +12,7 @@ export function StackChip({
     <button
       type="button"
       onClick={onBack}
-      className="inline-flex min-h-8 max-w-full items-center gap-2 rounded-full border border-border bg-surface px-3 text-xs text-text hover:bg-surface-2"
+      className="inline-flex min-h-8 max-w-full items-center gap-2 text-sm text-accent-text hover:underline"
     >
       <ArrowLeft aria-hidden className="size-3.5 shrink-0" />
       <span className="truncate">Back to {previousHeadline}</span>

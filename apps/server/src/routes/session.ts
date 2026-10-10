@@ -15,6 +15,7 @@ import {
   type SpecResponse,
   type UISpec,
 } from '@gestalt/shared';
+import { auth } from '../auth';
 import { getDb } from '../db/client';
 import { getDbState } from '../db/state';
 import { log } from '../log';
@@ -23,6 +24,7 @@ import { SupersededError, commit, compose, composeNow, fillDeferred } from '../s
 import { loadEntities } from '../services/entities';
 import { OVERVIEW_INTENT, finalizeIntent, intentFrom, parseIntent } from '../services/intent';
 import { requestUser } from '../lib/requestUser';
+import { clientIdsForOrg, getActiveOrgId } from '../services/orgs';
 import { loadPrefs, savePrefs } from '../services/prefs';
 import {
   createSession,
@@ -43,7 +45,11 @@ async function persistPrefs(session: Session): Promise<void> {
 
 export const sessionRouter = Router();
 
-export const entities = () => loadEntities(getDbState() === 'up' ? getDb() : null);
+export const entitiesFor = (session: Session) =>
+  loadEntities(getDbState() === 'up' ? getDb() : null, session.allowedClientIds);
+
+/** @deprecated Prefer entitiesFor(session) so org scoping is preserved. */
+export const entities = () => loadEntities(getDbState() === 'up' ? getDb() : null, null);
 
 export function parseBody<T extends z.ZodType>(
   schema: T,
@@ -137,23 +143,61 @@ async function streamIntent(
 sessionRouter.post('/session', async (req, res, next) => {
   try {
     const user = await requestUser(req);
-    const prefs = user ? await loadPrefs(user.id) : null;
-    const session = createSession({
-      userId: user?.id ?? null,
-      pinned: prefs?.pinned,
-      dismissed: prefs?.dismissed,
-    });
+
+    // When Better Auth is configured, the workspace requires a signed-in member with an org.
+    if (auth) {
+      if (!user) {
+        res.status(401).json({ error: 'Sign in required.', code: 'AUTH_REQUIRED' });
+        return;
+      }
+      let organizationId: string | null = null;
+      try {
+        organizationId = await getActiveOrgId(user.id);
+      } catch {
+        organizationId = null;
+      }
+      if (!organizationId) {
+        res.status(403).json({
+          error: 'Create or join an organization to open the workspace.',
+          code: 'NEED_ORG',
+        });
+        return;
+      }
+      const allowedClientIds = await clientIdsForOrg(organizationId);
+      const prefs = await loadPrefs(user.id);
+      const session = createSession({
+        userId: user.id,
+        organizationId,
+        allowedClientIds,
+        pinned: prefs.pinned,
+        dismissed: prefs.dismissed,
+      });
+      const [ents, spec] = await Promise.all([
+        entitiesFor(session),
+        composeNow(session, OVERVIEW_INTENT, { degraded: false, replaceTop: false }),
+      ]);
+      const body: SessionResponse = {
+        sessionId: session.id,
+        entities: { clients: ents.clients, projects: ents.projects },
+        demoPrompts: [...DEMO_PROMPTS],
+        spec,
+      };
+      res.json(body);
+      return;
+    }
+
+    // Auth disabled (local/tests): unrestricted demo portfolio.
+    const session = createSession({ userId: null, organizationId: null, allowedClientIds: null });
     const [ents, spec] = await Promise.all([
-      entities(),
+      entitiesFor(session),
       composeNow(session, OVERVIEW_INTENT, { degraded: false, replaceTop: false }),
     ]);
-    const body: SessionResponse = {
+    res.json({
       sessionId: session.id,
       entities: { clients: ents.clients, projects: ents.projects },
       demoPrompts: [...DEMO_PROMPTS],
       spec,
-    };
-    res.json(body);
+    } satisfies SessionResponse);
   } catch (err) {
     next(err);
   }
@@ -168,7 +212,7 @@ sessionRouter.post('/session/:id/compose', async (req, res) => {
   const stream = beginStream(session, res, body.requestId);
   await runStream(session, stream, async () => {
     stream.send({ type: 'status', stage: 'parsing' });
-    const ents = await entities();
+    const ents = await entitiesFor(session);
     const on = current(session)?.intent ?? null;
     const { parsed, source } = await parseIntent(
       body.text,
@@ -219,7 +263,7 @@ sessionRouter.post('/session/:id/resolve', async (req, res) => {
 
   const stream = beginStream(session, res, body.requestId);
   await runStream(session, stream, async () => {
-    const ents = await entities();
+    const ents = await entitiesFor(session);
     const intent = intentFrom(
       interpretation,
       current(session)?.intent.scope ?? null,

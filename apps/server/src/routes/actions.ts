@@ -13,7 +13,7 @@ import { draftEmail } from '../services/copy';
 import { loadScopeData } from '../services/data';
 import { buildDigest } from '../services/digest';
 import { current, getSession } from '../session';
-import { entities, parseBody } from './session';
+import { entitiesFor, parseBody } from './session';
 
 export const actionsRouter = Router();
 
@@ -31,8 +31,12 @@ actionsRouter.post('/actions/draft-email', async (req, res, next) => {
     res.status(409).json({ error: 'Drafting an email needs a client in scope and a database' });
     return;
   }
+  if (session.allowedClientIds && !session.allowedClientIds.includes(scope.clientId)) {
+    res.status(403).json({ error: 'That client is not in your organization.' });
+    return;
+  }
   try {
-    const data = await loadScopeData(db, scope, startOfDay(new Date()));
+    const data = await loadScopeData(db, scope, startOfDay(new Date()), session.allowedClientIds);
     const draft = await draftEmail(body.kind, await buildDigest(data.ctx), scope.clientId);
     res.json({ subject: draft.subject, body: draft.body } satisfies DraftEmailResponse);
   } catch (err) {
@@ -71,7 +75,8 @@ actionsRouter.post('/actions/execute', async (req, res) => {
     return;
   }
   const clientId = current(session)?.intent.scope.clientId;
-  const client = (await entities()).clients.find((c) => c.id === clientId)?.name ?? 'the client';
+  const client =
+    (await entitiesFor(session)).clients.find((c) => c.id === clientId)?.name ?? 'the client';
   const message = fill(MESSAGES[body.actionId], { client, ...body.params });
   if (body.actionId === 'add_followup_task') {
     activity.push({ at: Date.now(), sessionId: session.id, message });

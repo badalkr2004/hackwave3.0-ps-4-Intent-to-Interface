@@ -65,12 +65,112 @@ export const verification = appSchema.table('verification', {
     .notNull(),
 });
 
+export const organization = appSchema.table('organization', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const organizationMember = appSchema.table('organization_member', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  role: text('role').$type<'owner' | 'admin' | 'member'>().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const organizationInvite = appSchema.table('organization_invite', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  code: text('code').notNull().unique(),
+  role: text('role').$type<'admin' | 'member'>().notNull().default('member'),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export type MomActionItem = {
+  id: string;
+  text: string;
+  owner: string | null;
+  due: string | null;
+  status: 'open' | 'done' | 'missed';
+};
+
+export const meetingMinutes = appSchema.table('meeting_minutes', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  clientId: text('client_id'),
+  meetingId: text('meeting_id'),
+  title: text('title').notNull(),
+  heldAt: timestamp('held_at').notNull(),
+  rawText: text('raw_text').notNull(),
+  summary: text('summary'),
+  decisions: jsonb('decisions').$type<string[]>().notNull().default([]),
+  actionItems: jsonb('action_items').$type<MomActionItem[]>().notNull().default([]),
+  attendees: jsonb('attendees').$type<string[]>().notNull().default([]),
+  source: text('source').notNull().default('paste'),
+  createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const organizationClient = appSchema.table('organization_client', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  clientId: text('client_id').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const orgActionItem = appSchema.table('org_action_item', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  meetingMinutesId: text('meeting_minutes_id').references(() => meetingMinutes.id, {
+    onDelete: 'set null',
+  }),
+  clientId: text('client_id'),
+  text: text('text').notNull(),
+  owner: text('owner'),
+  due: text('due'),
+  status: text('status').$type<'open' | 'done' | 'missed'>().notNull().default('open'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const organizationAuditLog = appSchema.table('organization_audit_log', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  actorUserId: text('actor_user_id').references(() => user.id, { onDelete: 'set null' }),
+  action: text('action').notNull(),
+  entityType: text('entity_type').notNull(),
+  entityId: text('entity_id'),
+  detail: jsonb('detail').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const userWorkspacePrefs = appSchema.table('user_workspace_prefs', {
   userId: text('user_id')
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),
   pinned: jsonb('pinned').$type<string[]>().notNull().default([]),
   dismissed: jsonb('dismissed').$type<string[]>().notNull().default([]),
+  activeOrganizationId: text('active_organization_id').references(() => organization.id, {
+    onDelete: 'set null',
+  }),
   updatedAt: timestamp('updated_at')
     .defaultNow()
     .$onUpdate(() => new Date())
@@ -81,6 +181,7 @@ export const userRelations = relations(user, ({ many, one }) => ({
   sessions: many(session),
   accounts: many(account),
   workspacePrefs: one(userWorkspacePrefs),
+  memberships: many(organizationMember),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({

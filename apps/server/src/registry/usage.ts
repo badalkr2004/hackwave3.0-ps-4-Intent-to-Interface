@@ -1,5 +1,5 @@
 import { isWeekend } from '../lib/dates';
-import { dayOf, type LoadContext } from './types';
+import { dayOf, effectiveClientIds, type LoadContext } from './types';
 
 export interface UsagePoint {
   date: string;
@@ -88,10 +88,16 @@ export function loadUsageAnalyses(
 ): Promise<{ byClient: Map<string, UsageAnalysis>; portfolio: UsageAnalysis | null }> {
   return ctx.once('usage:all', async () => {
     const { db } = ctx;
+    const { sql } = db;
+    const allowed = effectiveClientIds(ctx);
+    if (allowed && allowed.length === 0) {
+      return { byClient: new Map(), portfolio: null };
+    }
     const rows = await db.sql<{ client_id: string; date: string; value: number }[]>`
       SELECT client_id, to_char(date, 'YYYY-MM-DD') AS date, value
       FROM ${db.table('usage_daily')}
       WHERE dimension = 'total' AND date BETWEEN ${dayOf(ctx, -90)} AND ${dayOf(ctx, -1)}
+        ${allowed ? sql`AND client_id = ANY(${[...allowed]})` : sql``}
       ORDER BY client_id, date`;
 
     const perClient = new Map<string, UsagePoint[]>();
@@ -131,8 +137,15 @@ export interface ClientRow {
 export function loadClients(ctx: LoadContext): Promise<ClientRow[]> {
   return ctx.once('clients', async () => {
     const { db } = ctx;
-    return db.sql<ClientRow[]>`
-      SELECT id, name, plan, arr, health FROM ${db.table('clients')} ORDER BY health, id`;
+    const allowed = effectiveClientIds(ctx);
+    if (allowed && allowed.length === 0) return [];
+    return allowed
+      ? db.sql<ClientRow[]>`
+          SELECT id, name, plan, arr, health FROM ${db.table('clients')}
+          WHERE id = ANY(${[...allowed]})
+          ORDER BY health, id`
+      : db.sql<ClientRow[]>`
+          SELECT id, name, plan, arr, health FROM ${db.table('clients')} ORDER BY health, id`;
   });
 }
 

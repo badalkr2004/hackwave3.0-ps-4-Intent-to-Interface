@@ -47,6 +47,14 @@ export interface Digest {
     sentiment: number;
   }[];
   commitments: { id: string; text: string; status: CommitmentStatus; due: string }[];
+  /** Most recent past meeting notes — feeds talking points after MOM ingest. */
+  lastMeeting: {
+    id: string;
+    title: string;
+    daysAgo: number;
+    notesExcerpt: string | null;
+    decisions: string[];
+  } | null;
   work: {
     overdue: {
       id: string;
@@ -62,6 +70,17 @@ export interface Digest {
 }
 
 export const releaseRef = (version: string) => `rel:${version}`;
+
+function decisionsFromNotes(notes: string | null): string[] {
+  if (!notes) return [];
+  const block = notes.match(/Decisions:\s*\n([\s\S]*?)(?:\n\nAttendees:|\n\n[A-Z]|$)/i);
+  if (!block?.[1]) return [];
+  return block[1]
+    .split('\n')
+    .map((l) => l.replace(/^[-*•]\s*/, '').trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
 
 /** Builds the digest from module props already loaded for this scope (memoized via ctx.load). */
 export function buildDigest(ctx: LoadContext): Promise<Digest> {
@@ -163,6 +182,17 @@ export function buildDigest(ctx: LoadContext): Promise<Digest> {
         status: c.status,
         due: c.due,
       })),
+      lastMeeting: recap?.meeting
+        ? {
+            id: `meeting:${recap.meeting.id}`,
+            title: recap.meeting.title,
+            daysAgo: recap.meeting.daysAgo,
+            notesExcerpt: recap.meeting.notes
+              ? recap.meeting.notes.replace(/\s+/g, ' ').trim().slice(0, 600)
+              : null,
+            decisions: decisionsFromNotes(recap.meeting.notes),
+          }
+        : null,
       work: {
         overdue: (overdue?.tasks ?? []).slice(0, 6).map((t) => ({
           id: `task:${t.id}`,
@@ -214,5 +244,6 @@ export function digestIds(d: Digest): Set<string> {
     for (const item of list) ids.add(item.id);
   }
   if (d.meeting) ids.add(d.meeting.id);
+  if (d.lastMeeting) ids.add(d.lastMeeting.id);
   return ids;
 }

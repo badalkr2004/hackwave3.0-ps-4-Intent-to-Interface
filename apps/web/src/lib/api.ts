@@ -22,18 +22,31 @@ async function postJson(url: string, body?: unknown): Promise<unknown> {
     body: JSON.stringify(body ?? {}),
     credentials: 'include',
   });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  if (!res.ok) {
+    const payload = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
+    if (payload.code === 'AUTH_REQUIRED') {
+      window.location.assign('/login');
+      throw new Error(payload.error || 'Sign in required');
+    }
+    if (payload.code === 'NEED_ORG') {
+      window.location.assign('/onboard');
+      throw new Error(payload.error || 'Organization required');
+    }
+    throw new Error(payload.error || `Request failed (${res.status})`);
+  }
   return res.json();
 }
 
 export async function fetchMe(): Promise<{
   authEnabled: boolean;
+  googleOAuth?: boolean;
   user: { id: string; name: string; email: string; image: string | null } | null;
 }> {
   const res = await fetch('/api/me', { credentials: 'include' });
   if (!res.ok) throw new Error(`Session check failed (${res.status})`);
   return (await res.json()) as {
     authEnabled: boolean;
+    googleOAuth?: boolean;
     user: { id: string; name: string; email: string; image: string | null } | null;
   };
 }

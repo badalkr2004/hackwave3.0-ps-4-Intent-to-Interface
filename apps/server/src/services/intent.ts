@@ -43,22 +43,22 @@ export function describeIntent(
     case 'prepare':
       return client
         ? {
-            summary: `Preparing for your meeting with ${client}.`,
-            headline: `Preparing for ${client}`,
+            summary: `Notes and talking points for your meeting with ${client}.`,
+            headline: `${client} meeting`,
           }
-        : { summary: 'Preparing for your next meeting.', headline: 'Preparing for a meeting' };
+        : { summary: 'Notes and talking points for your next meeting.', headline: 'Meeting prep' };
     case 'diagnose':
       return {
-        summary: `Investigating why ${client ? `${client}'s` : 'portfolio'} usage changed over the last ${RANGE_TEXT[scope.timeRange]}.`,
-        headline: client ? `Investigating ${client} usage drop` : 'Investigating usage drop',
+        summary: `What changed in ${client ? `${client}'s` : 'portfolio'} usage over the last ${RANGE_TEXT[scope.timeRange]}.`,
+        headline: client ? `${client} usage` : 'Usage drop',
       };
     case 'triage':
       return {
-        summary: `Reviewing overdue work${client ? ` for ${client}` : ''}.`,
-        headline: 'Reviewing overdue work',
+        summary: `Work that is late or stuck${client ? ` for ${client}` : ''}.`,
+        headline: 'Overdue work',
       };
     case 'overview':
-      return { summary: 'Here is your portfolio at a glance.', headline: 'Overview' };
+      return { summary: 'A calm look across your accounts.', headline: 'Overview' };
   }
 }
 
@@ -203,6 +203,6 @@ export const OVERVIEW_INTENT: Intent = {
   shape: 'overview',
   scope: { clientId: null, projectId: null, timeRange: '30d' },
   confidence: 1,
-  summary: 'Here is your portfolio at a glance.',
+  summary: 'A calm look across your accounts.',
   headline: 'Overview',
 };

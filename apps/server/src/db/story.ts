@@ -117,7 +117,7 @@ function dropRamp(day: number): number {
 /** [share of daily base, level after the drop] per segment. */
 type SegmentCurve = Record<string, readonly [share: number, finalLevel: number]>;
 
-interface UsageProfile {
+export interface UsageProfile {
   clientId: string;
   weekday: number;
   weekend: number;
@@ -136,7 +136,8 @@ const STABLE_FEATURES: SegmentCurve = {
 };
 const STABLE_TEAMS: SegmentCurve = { finance: [0.4, 1], ops: [0.35, 1], sales: [0.25, 1] };
 
-const USAGE_PROFILES: readonly UsageProfile[] = [
+/** Northwind CS portfolio — export-decay narrative used by engine tests. */
+export const NORTHWIND_USAGE_PROFILES: readonly UsageProfile[] = [
   {
     clientId: 'acme',
     weekday: 410,
@@ -175,12 +176,16 @@ const USAGE_PROFILES: readonly UsageProfile[] = [
   },
 ];
 
-function buildUsage(today: Date): UsageRow[] {
-  const rng = mulberry32(42);
+export function buildUsage(
+  today: Date,
+  profiles: readonly UsageProfile[] = NORTHWIND_USAGE_PROFILES,
+  seed = 42,
+): UsageRow[] {
+  const rng = mulberry32(seed);
   const noise = () => 1 + (rng() * 2 - 1) * NOISE;
   const rows: UsageRow[] = [];
 
-  for (const p of USAGE_PROFILES) {
+  for (const p of profiles) {
     for (let day = -USAGE_DAYS; day <= -1; day++) {
       const d = addDays(today, day);
       const date = toISODate(d);

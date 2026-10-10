@@ -21,7 +21,7 @@ function rows(spec: UISpec) {
     return {
       id,
       title: ex?.title ?? titleOf(id),
-      detail: ex && ex.reason !== 'not_relevant' ? ex.detail : 'No longer needed for this task.',
+      detail: ex && ex.reason !== 'not_relevant' ? ex.detail : 'No longer needed for this job.',
     };
   });
   const moved = new Set(diff.moved);
@@ -37,12 +37,12 @@ function Section({ heading, items }: { heading: string; items: Row[] }) {
   if (items.length === 0) return null;
   return (
     <section className="flex flex-col gap-1">
-      <h3 className="text-xs font-medium tracking-wide text-muted uppercase">{heading}</h3>
+      <h3 className="text-xs font-medium text-muted">{heading}</h3>
       <ul className="flex flex-col gap-1">
         {items.map((r) => (
           <li key={r.id} className="text-sm">
             <span className="font-medium text-text">{r.title}</span>
-            {r.detail && <span className="text-muted"> · {r.detail}</span>}
+            {r.detail && <span className="text-muted"> — {r.detail}</span>}
           </li>
         ))}
       </ul>
@@ -51,12 +51,10 @@ function Section({ heading, items }: { heading: string; items: Row[] }) {
 }
 
 /**
- * "+N added · N removed · N kept" disclosure under the headline, so nothing changes silently.
- * Remount it per composition (key by spec id and version) so it starts collapsed.
+ * Plain “what changed” disclosure under the brief so nothing shifts in silence.
+ * Remount per composition (key by spec id and version) so it starts collapsed.
  */
 export function DiffRibbon({ spec }: { spec: UISpec }) {
-  // SPEC-NOTE: open state is local to the ribbon instead of a store `diffOpen` flag; nothing
-  // else reads it, and remounting per composition resets it.
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -97,12 +95,13 @@ export function DiffRibbon({ spec }: { spec: UISpec }) {
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex min-h-8 items-center gap-2 rounded-full border border-border bg-surface px-3 text-xs text-muted hover:bg-surface-2 hover:text-text"
+        className="inline-flex min-h-8 items-center gap-2 rounded-md border border-border bg-bg px-3 text-xs text-muted hover:border-border-strong hover:text-text"
       >
-        <span className="sr-only">What changed: </span>
         <span>
-          <span className="text-success">+{added.length} added</span> · {removed.length} removed ·{' '}
-          {kept.length} kept
+          What changed ·{' '}
+          <span className="text-success">{added.length} new</span>
+          {' · '}
+          {removed.length} aside · {kept.length} same
         </span>
         <ChevronDown
           aria-hidden
@@ -112,11 +111,11 @@ export function DiffRibbon({ spec }: { spec: UISpec }) {
       <div
         id={listId}
         hidden={!open}
-        className="absolute top-full left-0 z-30 mt-2 flex w-[min(560px,calc(100vw-2.5rem))] flex-col gap-3 rounded-lg border border-border bg-surface p-4 shadow-panel"
+        className="absolute top-full left-0 z-30 mt-2 flex w-[min(560px,calc(100vw-2.5rem))] flex-col gap-3 sheet p-4"
       >
-        <Section heading="Added" items={added} />
-        <Section heading="Removed" items={removed} />
-        <Section heading="Kept" items={kept} />
+        <Section heading="New here" items={added} />
+        <Section heading="Set aside" items={removed} />
+        <Section heading="Still here" items={kept} />
       </div>
     </div>
   );

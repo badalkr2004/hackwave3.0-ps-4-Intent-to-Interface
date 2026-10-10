@@ -103,23 +103,23 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
       aria-labelledby={headingId}
       aria-busy={panel.status === 'loading' || undefined}
       data-panel-id={panel.id}
-      className={`flex flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-panel ${SIZE_CLASSES[panel.size]}`}
+      className={`flex flex-col overflow-hidden sheet ${panel.size === 'L' ? 'border-l-[3px] border-l-accent' : ''} ${SIZE_CLASSES[panel.size]}`}
     >
       <header className="flex items-start gap-2 px-4 pt-3">
         <div className="min-w-0 flex-1">
-          <h2 id={headingId} tabIndex={-1} className="text-md font-medium text-text">
+          <h2
+            id={headingId}
+            tabIndex={-1}
+            className="font-display text-md leading-snug font-medium text-text"
+          >
             {panel.question}
           </h2>
-          <p className="mt-0.5 text-xs text-muted">
-            <span className="sr-only">Need: </span>
-            {panel.need.replace(/_/g, ' ')}
-            {panel.pinned && ' · pinned'}
-          </p>
+          {panel.pinned && <p className="mt-0.5 text-xs text-accent-text">Kept on screen</p>}
         </div>
         <div className="-mr-2 flex shrink-0 items-center">
           {onTogglePin && (
             <IconButton
-              label={`${panel.pinned ? 'Unpin' : 'Pin'} ${panel.question}`}
+              label={`${panel.pinned ? 'Stop keeping' : 'Keep'} ${panel.question}`}
               pressed={panel.pinned}
               onClick={() => onTogglePin(panel.componentId, !panel.pinned)}
             >
@@ -132,7 +132,7 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
           )}
           {onDismiss && (
             <IconButton
-              label={`Dismiss ${panel.question}`}
+              label={`Hide ${panel.question}`}
               onClick={() => onDismiss(panel.componentId)}
             >
               <X aria-hidden className="size-4" />

@@ -1,5 +1,4 @@
 import {
-  SIZE_BREAKS,
   type Exclusion,
   type ExclusionReason,
   type Need,
@@ -7,25 +6,32 @@ import {
   type Size,
 } from '@gestalt/shared';
 
+/** Plain-language group titles for people who do not care about auction jargon. */
 export const EXCLUSION_GROUPS: { reason: ExclusionReason; heading: string }[] = [
-  { reason: 'not_relevant', heading: 'Not relevant' },
-  { reason: 'low_score', heading: 'Low relevance' },
-  { reason: 'no_data', heading: 'No data' },
-  { reason: 'no_space', heading: 'No space' },
-  { reason: 'dismissed', heading: 'Dismissed' },
+  { reason: 'not_relevant', heading: 'Not needed for this job' },
+  { reason: 'low_score', heading: 'Less useful right now' },
+  { reason: 'no_data', heading: 'No facts available' },
+  { reason: 'no_space', heading: 'Did not fit on screen' },
+  { reason: 'dismissed', heading: 'You hid these' },
 ];
 
 export const NEED_SOURCE_LABEL: Record<Need['source'], string> = {
-  template: 'Template',
-  llm_adjusted: 'Adjusted',
-  llm_added: 'Added',
-  user_pinned: 'Pinned',
+  template: 'Usual for this job',
+  llm_adjusted: 'Raised for this case',
+  llm_added: 'Added for this case',
+  user_pinned: 'You kept this',
 };
 
 export function sizeBecause(size: Size): string {
-  if (size === 'L') return `Large because score above ${SIZE_BREAKS.L.toFixed(2)}`;
-  if (size === 'M') return `Medium because score above ${SIZE_BREAKS.M.toFixed(2)}`;
-  return `Small because score below ${SIZE_BREAKS.M.toFixed(2)}`;
+  if (size === 'L') return 'Shown large because it is central';
+  if (size === 'M') return 'Shown medium for context';
+  return 'Shown small as supporting detail';
+}
+
+export function fitLabel(score: number): string {
+  if (score >= 0.8) return 'Very useful here';
+  if (score >= 0.5) return 'Useful here';
+  return 'Supporting detail';
 }
 
 export function groupedExclusions(excluded: Exclusion[]) {
@@ -44,7 +50,9 @@ export function needAdjustment(needs: Need[], type: Receipt['need']): string | u
 export function confidenceWord(
   interpretations: { id: string; confidence: number }[],
   id: string,
-): 'Likely' | 'Possible' {
+): 'Best match' | 'Also possible' {
   const top = Math.max(0, ...interpretations.map((i) => i.confidence));
-  return interpretations.find((i) => i.confidence === top)?.id === id ? 'Likely' : 'Possible';
+  return interpretations.find((i) => i.confidence === top)?.id === id
+    ? 'Best match'
+    : 'Also possible';
 }

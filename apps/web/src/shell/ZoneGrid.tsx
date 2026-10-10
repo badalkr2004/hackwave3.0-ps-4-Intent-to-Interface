@@ -4,9 +4,9 @@ import type { Panel, Zone } from '@gestalt/shared';
 import { PanelFrame } from './PanelFrame';
 
 const ZONES: { zone: Zone; area: string; label?: string }[] = [
-  { zone: 'left', area: '[grid-area:left]', label: 'Context' },
+  { zone: 'left', area: '[grid-area:left]', label: 'Background' },
   { zone: 'center', area: '[grid-area:center]' },
-  { zone: 'right', area: '[grid-area:right]', label: 'Actions and issues' },
+  { zone: 'right', area: '[grid-area:right]', label: 'Next steps' },
 ];
 
 const STAGGER_MS = 40;

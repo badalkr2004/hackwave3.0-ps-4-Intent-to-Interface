@@ -1,11 +1,12 @@
-import { defineModule } from './types';
+import { defineModule, effectiveClientIds } from './types';
 
 export default defineModule({
   id: 'upcoming_meetings',
   async loader(ctx) {
     const { db } = ctx;
     const { sql } = db;
-    const clientId = ctx.scope.clientId;
+    const allowed = effectiveClientIds(ctx);
+    if (allowed && allowed.length === 0) return null;
     const rows = await sql<
       {
         id: string;
@@ -20,7 +21,7 @@ export default defineModule({
       FROM ${db.table('meetings')} m
       JOIN ${db.table('clients')} c ON c.id = m.client_id
       WHERE m.date >= now() AND m.date < now() + interval '7 days'
-        ${clientId ? sql`AND m.client_id = ${clientId}` : sql``}
+        ${allowed ? sql`AND m.client_id = ANY(${[...allowed]})` : sql``}
       ORDER BY m.date
       LIMIT 6`;
     if (rows.length === 0) return null;

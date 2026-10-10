@@ -6,7 +6,7 @@
         "shape": "prepare",
         "scope": { "clientId": "acme" },
         "confidence": 0.93,
-        "rationale": "Mentions preparing for a client meeting with Acme."
+        "rationale": "You asked to get ready for Acme."
       }
     ],
     "isPivot": false
@@ -18,7 +18,7 @@
         "shape": "diagnose",
         "scope": {},
         "confidence": 0.9,
-        "rationale": "Asks why usage dropped for the client already in focus."
+        "rationale": "You want to know why their usage fell."
       }
     ],
     "isPivot": true
@@ -30,7 +30,7 @@
         "shape": "triage",
         "scope": { "clientId": null, "projectId": null },
         "confidence": 0.92,
-        "rationale": "Asks for overdue work across every project."
+        "rationale": "You want late work across every project."
       }
     ],
     "isPivot": false
@@ -42,14 +42,14 @@
         "shape": "diagnose",
         "scope": { "clientId": "acme" },
         "confidence": 0.48,
-        "rationale": "Could mean looking into Acme's recent usage change."
+        "rationale": "Might mean checking Acme’s recent usage."
       },
       {
         "label": "Prepare for Acme meeting",
         "shape": "prepare",
         "scope": { "clientId": "acme" },
         "confidence": 0.42,
-        "rationale": "Acme has a business review tomorrow."
+        "rationale": "Acme has a review tomorrow."
       }
     ],
     "isPivot": false

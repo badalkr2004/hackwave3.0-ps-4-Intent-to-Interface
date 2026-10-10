@@ -1,12 +1,15 @@
 import type { Priority } from '@gestalt/shared';
-import { defineModule, dayOf } from './types';
+import { defineModule, dayOf, effectiveClientIds } from './types';
 
 export default defineModule({
   id: 'open_issues',
   async loader(ctx) {
     const { db } = ctx;
     const { sql } = db;
-    const clientId = ctx.scope.clientId;
+    const allowed = effectiveClientIds(ctx);
+    if (allowed && allowed.length === 0) {
+      return { tickets: [], totalOpen: 0, highCount: 0, recentShare: 0 };
+    }
     const rows = await sql<
       {
         id: string;
@@ -24,7 +27,8 @@ export default defineModule({
         (${dayOf(ctx, 0)}::date - t.updated::date)::int AS updated_days
       FROM ${db.table('tickets')} t
       JOIN ${db.table('clients')} c ON c.id = t.client_id
-      WHERE t.status = 'open' ${clientId ? sql`AND t.client_id = ${clientId}` : sql``}
+      WHERE t.status = 'open'
+        ${allowed ? sql`AND t.client_id = ANY(${[...allowed]})` : sql``}
       ORDER BY CASE t.priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, t.created`;
     const recent = rows.filter((r) => r.updated_days <= 7).length;
     return {

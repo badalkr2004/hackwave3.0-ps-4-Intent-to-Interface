@@ -19,7 +19,7 @@ export function Toast({
   }, [toast, onDone]);
 
   return (
-    <div aria-hidden className="pointer-events-none fixed right-4 bottom-4 z-50">
+    <div aria-hidden className="pointer-events-none fixed right-4 bottom-24 z-50 sm:bottom-4">
       <AnimatePresence>
         {toast && (
           <motion.p
@@ -27,7 +27,7 @@ export function Toast({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            className="flex items-center gap-2 rounded-md border border-border bg-surface px-4 py-3 text-sm text-text shadow-panel"
+            className="flex items-center gap-2 sheet px-4 py-3 text-sm text-text"
           >
             <CircleCheck className="size-4 text-success" />
             {toast.message}

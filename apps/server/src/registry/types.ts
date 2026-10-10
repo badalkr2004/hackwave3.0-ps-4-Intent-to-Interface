@@ -8,10 +8,27 @@ export interface LoadContext {
   db: Db;
   scope: Scope;
   today: Date;
+  /**
+   * Clients visible to the active organization. `null` means unrestricted (auth off / legacy).
+   * Empty array means the org has no linked clients — loaders must return no portfolio data.
+   */
+  allowedClientIds: readonly string[] | null;
   /** Memoizes shared sub-queries (e.g. usage analysis) across loaders within one loadAll call. */
   once<T>(key: string, fn: () => Promise<T>): Promise<T>;
   /** Another module's props for the same scope (memoized), e.g. for deferred panels' digests. */
   load<K extends ComponentId>(id: K): Promise<PanelProps<K> | null>;
+}
+
+/**
+ * Client ids a loader may read: the scoped client (if allowed), else the org allow-list,
+ * else `null` for unrestricted access.
+ */
+export function effectiveClientIds(ctx: LoadContext): readonly string[] | null {
+  if (ctx.scope.clientId) {
+    if (ctx.allowedClientIds && !ctx.allowedClientIds.includes(ctx.scope.clientId)) return [];
+    return [ctx.scope.clientId];
+  }
+  return ctx.allowedClientIds;
 }
 
 export interface RegistryModule<K extends ComponentId = ComponentId> {

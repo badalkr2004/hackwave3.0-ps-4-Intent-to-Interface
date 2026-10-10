@@ -1,13 +1,14 @@
 import { loadUsageAnalyses } from './usage';
-import { defineModule, dayOf, pctText } from './types';
+import { defineModule, dayOf, effectiveClientIds, pctText } from './types';
 
 export default defineModule({
   id: 'client_snapshot',
-  // With no client in scope, the snapshot shows the most at-risk client.
+  // With no client in scope, the snapshot shows the most at-risk client in the org.
   async loader(ctx) {
     const { db } = ctx;
     const { sql } = db;
-    const clientId = ctx.scope.clientId;
+    const allowed = effectiveClientIds(ctx);
+    if (allowed && allowed.length === 0) return null;
     const [rows, usage] = await Promise.all([
       sql<
         {
@@ -37,7 +38,7 @@ export default defineModule({
             WHERE m.client_id = c.id ORDER BY m.date DESC LIMIT 3) s)::float8 AS recent_sentiment
         FROM ${db.table('clients')} c
         LEFT JOIN ${db.table('people')} p ON p.id = c.csm_id
-        WHERE ${clientId ? sql`c.id = ${clientId}` : sql`true`}
+        WHERE ${allowed ? sql`c.id = ANY(${[...allowed]})` : sql`true`}
         ORDER BY c.health, c.id
         LIMIT 1`,
       loadUsageAnalyses(ctx),
