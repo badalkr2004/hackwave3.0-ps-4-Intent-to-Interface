@@ -57,11 +57,6 @@
 @layer base {
   html {
     background-color: var(--bg);
-    background-image:
-      radial-gradient(1200px 600px at 10% -10%, rgba(15, 110, 86, 0.09), transparent 55%),
-      radial-gradient(900px 500px at 100% 0%, rgba(20, 32, 36, 0.06), transparent 50%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 40%);
-    background-attachment: fixed;
     color: var(--text);
     font-family: var(--font-sans);
     font-size: var(--text-md);
@@ -127,12 +122,11 @@
     border: 0;
   }
 
-  /* Soft sheet: less “card SaaS”, more paper on a desk. */
+  /* Hairline border only — no shadow on panels (SPEC: border OR shadow, not both). */
   .sheet {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-1);
   }
 
   /* Enterprise auth / onboarding: atmospheric brand plane + calm form column. */
