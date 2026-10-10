@@ -10,7 +10,8 @@ const SHAPES = ['overview', 'prepare', 'diagnose', 'triage'];
 
 async function main() {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
   let failed = false;
 
   for (const shape of SHAPES) {

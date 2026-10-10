@@ -63,7 +63,12 @@ export function BlockerChain({ props, size }: PanelViewProps<'blocker_chain'>) {
       <p className="text-sm text-text">
         {summarize(props.tasks)} <span className="text-muted">· {props.projectName}</span>
       </p>
-      <div className="overflow-x-auto pb-1">
+      <div
+        role="region"
+        aria-label="Dependency chain, scroll horizontally"
+        tabIndex={0}
+        className="overflow-x-auto pb-1"
+      >
         <ol
           aria-label="Dependency chain, left to right"
           className="flex min-w-max items-stretch gap-1"

@@ -18,15 +18,12 @@ export function AuthMenu({
 }) {
   const [authEnabled, setAuthEnabled] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [org, setOrg] = useState<OrgSummary | null>(activeOrg ?? null);
+  const [fetchedOrg, setFetchedOrg] = useState<OrgSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
-
-  useEffect(() => {
-    setOrg(activeOrg ?? null);
-  }, [activeOrg]);
+  const org = activeOrg ?? fetchedOrg;
 
   useEffect(() => {
     let cancelled = false;
@@ -36,11 +33,9 @@ export function AuthMenu({
         startTransition(() => {
           setAuthEnabled(me.authEnabled);
           setUser(me.user);
-          if (!activeOrg) {
-            const next =
-              me.orgs.find((o) => o.id === me.activeOrganizationId) ?? me.orgs[0] ?? null;
-            setOrg(next);
-          }
+          const next =
+            me.orgs.find((o) => o.id === me.activeOrganizationId) ?? me.orgs[0] ?? null;
+          setFetchedOrg(next);
         });
       })
       .catch(() => {
@@ -48,13 +43,14 @@ export function AuthMenu({
           startTransition(() => {
             setAuthEnabled(false);
             setUser(null);
+            setFetchedOrg(null);
           });
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [activeOrg]);
+  }, []);
 
   useEffect(() => {
     if (!open) return;

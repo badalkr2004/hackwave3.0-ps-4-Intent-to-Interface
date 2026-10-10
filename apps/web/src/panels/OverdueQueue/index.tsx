@@ -57,7 +57,7 @@ export function OverdueQueue({ props, size }: PanelViewProps<'overdue_queue'>) {
   return (
     <div className="flex flex-col gap-3">
       {header}
-      <div className="overflow-x-auto">
+      <div role="region" aria-label="Overdue tasks table" tabIndex={0} className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">Overdue tasks, most overdue first</caption>
           <thead className="text-xs text-muted">
