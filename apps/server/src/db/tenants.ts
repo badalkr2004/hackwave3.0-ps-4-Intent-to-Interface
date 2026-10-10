@@ -1,6 +1,8 @@
 import { hashPassword } from 'better-auth/crypto';
 import { randomBytes } from 'node:crypto';
+import { startOfDay } from '../lib/dates';
 import type { Sql } from './client';
+import { buildSalesStory } from './story-sales';
 import { HELIOS_CLIENT_IDS } from './story-helios';
 
 const oc = (orgId: string, clientId: string) =>
@@ -46,7 +48,8 @@ export async function seedTenants(sql: Sql, schema: string): Promise<void> {
     await tx`
       TRUNCATE organization_audit_log, org_action_item, meeting_minutes,
         organization_invite, organization_client, organization_member,
-        user_workspace_prefs, organization
+        user_workspace_prefs, organization,
+        sales_opportunity, marketing_campaign, marketing_channel_daily
       RESTART IDENTITY CASCADE`;
 
     // Remove previous demo users (keep any other auth users intact).
@@ -86,7 +89,22 @@ export async function seedTenants(sql: Sql, schema: string): Promise<void> {
 
     // Sample MOM + action items per org (categories: meetings/MoM, commitments).
     await insertSampleMom(tx as unknown as Sql, now);
+    await insertSalesMarketing(tx as unknown as Sql, startOfDay(now));
   });
+}
+
+async function insertSalesMarketing(tx: Sql, today: Date): Promise<void> {
+  const s = buildSalesStory(today);
+  if (s.opportunities.length) {
+    await tx`INSERT INTO sales_opportunity ${tx(s.opportunities)}`;
+  }
+  if (s.campaigns.length) {
+    await tx`INSERT INTO marketing_campaign ${tx(s.campaigns)}`;
+  }
+  const CHUNK = 500;
+  for (let i = 0; i < s.channelDaily.length; i += CHUNK) {
+    await tx`INSERT INTO marketing_channel_daily ${tx(s.channelDaily.slice(i, i + CHUNK))}`;
+  }
 }
 
 async function insertSampleMom(tx: Sql, now: Date): Promise<void> {

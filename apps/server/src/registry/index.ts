@@ -10,6 +10,7 @@ import open_issues from './open_issues';
 import overdue_queue from './overdue_queue';
 import portfolio_health from './portfolio_health';
 import release_strip from './release_strip';
+import sales_pulse from './sales_pulse';
 import segment_breakdown from './segment_breakdown';
 import talking_points from './talking_points';
 import upcoming_meetings from './upcoming_meetings';
@@ -31,5 +32,6 @@ export const REGISTRY: { [K in ComponentId]: RegistryModule<K> } = {
   overdue_queue,
   blocker_chain,
   workload_bars,
+  sales_pulse,
   action_bar,
 };

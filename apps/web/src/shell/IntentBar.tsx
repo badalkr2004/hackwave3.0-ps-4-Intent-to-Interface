@@ -10,6 +10,8 @@ function chipLabel(prompt: string): string {
   if (t.includes('usage drop')) return 'Why usage dropped';
   if (t.includes('overdue')) return 'What’s overdue';
   if (t.includes('look into')) return 'Look into Acme';
+  if (t.includes('sales') && t.includes('pie')) return 'Sales as pie chart';
+  if (t.includes('sales report') || t.includes('sales analytics')) return 'Sales report';
   return prompt.length > 36 ? `${prompt.slice(0, 34)}…` : prompt;
 }
 
@@ -21,6 +23,8 @@ export interface IntentBarProps {
   onHome: () => void;
 }
 
+const EXTRA_PROMPTS = ['Show me the sales report in a pie chart'] as const;
+
 export function IntentBar({
   busy,
   demoPrompts,
@@ -28,6 +32,7 @@ export function IntentBar({
   onSubmit,
   onHome,
 }: IntentBarProps) {
+  const prompts = [...demoPrompts, ...EXTRA_PROMPTS];
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -122,9 +127,9 @@ export function IntentBar({
           {error}
         </p>
       )}
-      {showSuggestions && !busy && demoPrompts.length > 0 && (
+      {showSuggestions && !busy && prompts.length > 0 && (
         <ul aria-label="Try one of these" className="flex flex-wrap gap-2">
-          {demoPrompts.map((p) => (
+          {prompts.map((p) => (
             <li key={p}>
               <button
                 type="button"

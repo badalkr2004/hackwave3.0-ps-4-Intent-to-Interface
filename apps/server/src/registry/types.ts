@@ -13,6 +13,8 @@ export interface LoadContext {
    * Empty array means the org has no linked clients — loaders must return no portfolio data.
    */
   allowedClientIds: readonly string[] | null;
+  /** Active organization for tenant-scoped loaders (sales, MOM). Null when auth is off. */
+  organizationId: string | null;
   /** Memoizes shared sub-queries (e.g. usage analysis) across loaders within one loadAll call. */
   once<T>(key: string, fn: () => Promise<T>): Promise<T>;
   /** Another module's props for the same scope (memoized), e.g. for deferred panels' digests. */

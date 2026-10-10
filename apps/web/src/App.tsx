@@ -119,6 +119,12 @@ function WorkspaceApp({
           </div>
           <div className="flex items-center gap-2">
             <AuthMenu activeOrg={activeOrg} onAuthChange={onAuthChange} />
+            <a
+              href="/analytics"
+              className="hidden min-h-11 items-center rounded-md border border-border bg-surface px-3 text-sm text-text hover:bg-surface-2 sm:inline-flex"
+            >
+              Analytics
+            </a>
             <WhyToggle on={s.lensOn} onToggle={s.toggleLens} />
           </div>
         </header>
@@ -128,7 +134,7 @@ function WorkspaceApp({
           <Headline intent={s.spec?.intent ?? null} idle={!hasBrief && s.phase !== 'booting'} />
           {s.spec?.diff && <DiffRibbon key={`${s.spec.id}:${s.spec.version}`} spec={s.spec} />}
         </div>
-
+         
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur-sm sm:static sm:z-0 sm:mt-5 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
           <div className="mx-auto max-w-[1280px] sm:mx-0 sm:max-w-3xl">
             <IntentBar
@@ -217,6 +223,9 @@ function WorkspaceApp({
             </section>
           )}
           <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <a href="/analytics" className="text-accent-text underline-offset-2 hover:underline">
+              Analytics
+            </a>
             <a href="/org" className="text-accent-text underline-offset-2 hover:underline">
               Organization
             </a>

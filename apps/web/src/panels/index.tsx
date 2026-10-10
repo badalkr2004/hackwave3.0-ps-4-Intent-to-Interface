@@ -12,6 +12,7 @@ import { OverdueQueue } from './OverdueQueue';
 import { PanelSkeleton, type SkeletonVariant } from './PanelSkeleton';
 import { PortfolioHealth } from './PortfolioHealth';
 import { ReleaseStrip } from './ReleaseStrip';
+import { SalesPulse } from './SalesPulse';
 import { SegmentBreakdown } from './SegmentBreakdown';
 import { TalkingPoints } from './TalkingPoints';
 import { UpcomingMeetings } from './UpcomingMeetings';
@@ -68,6 +69,7 @@ export const PANELS: Record<ComponentId, PanelEntry> = {
   overdue_queue: definePanel('overdue_queue', OverdueQueue, 'list'),
   blocker_chain: definePanel('blocker_chain', BlockerChain, 'list'),
   workload_bars: definePanel('workload_bars', WorkloadBars, 'bars'),
+  sales_pulse: definePanel('sales_pulse', SalesPulse, 'bars'),
   action_bar: definePanel('action_bar', ActionBar, 'buttons'),
 };
 

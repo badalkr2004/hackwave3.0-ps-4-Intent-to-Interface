@@ -1,11 +1,12 @@
-import type {
-  ClientRef,
-  Interpretation,
-  IntentParseResult,
-  PartialScope,
-  Scope,
-  Shape,
-  TimeRange,
+import {
+  parseSalesVizRequest,
+  type ClientRef,
+  type Interpretation,
+  type IntentParseResult,
+  type PartialScope,
+  type Scope,
+  type Shape,
+  type TimeRange,
 } from '@gestalt/shared';
 
 export interface KeywordContext {
@@ -72,6 +73,23 @@ export function keywordIntent(text: string, ctx: KeywordContext): IntentParseRes
   const timeRange = timeRangeOf(text);
   const clientName = (id: string | null | undefined) =>
     ctx.clients.find((c) => c.id === id)?.name ?? null;
+
+  // Sales chart asks compose as overview so sales_pulse can win the auction.
+  if (parseSalesVizRequest(text)) {
+    return {
+      interpretations: [
+        {
+          id: 'i1',
+          label: 'Sales report',
+          shape: 'overview',
+          scope: { clientId: null, projectId: null, ...(timeRange ? { timeRange } : {}) },
+          confidence: CONFIDENCE,
+          rationale: 'Matched sales / marketing chart keywords.',
+        },
+      ],
+      isPivot: ctx.current !== null && ctx.current.shape !== 'overview',
+    };
+  }
 
   const scopeFor = (shape: Shape): PartialScope => {
     const scope: PartialScope = timeRange ? { timeRange } : {};

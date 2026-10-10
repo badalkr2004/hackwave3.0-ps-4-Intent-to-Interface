@@ -237,6 +237,37 @@ export const WorkloadBarsProps = z.object({
   ),
 });
 
+export const SalesPulseProps = z.object({
+  pipelineValue: z.number(),
+  weightedForecast: z.number(),
+  winRate: z.number(),
+  openDeals: z.number(),
+  topClientName: z.string().nullable(),
+  topClientShare: z.number(),
+  byStage: z.array(
+    z.object({
+      stage: z.string(),
+      amount: z.number(),
+    }),
+  ),
+  /** Weekly lead counts for trend mode (from marketing_channel_daily). */
+  trend: z
+    .array(
+      z.object({
+        week: z.string(),
+        leads: z.number(),
+        spend: z.number(),
+      }),
+    )
+    .default([]),
+  /**
+   * Chart format requested via natural language (compose → session.preferredViz).
+   * Defaults to bars when the user did not ask for a specific format.
+   */
+  preferredChart: z.enum(['trend', 'bars', 'pie', 'funnel']).default('bars'),
+  insight: z.string(),
+});
+
 export const ActionId = z.enum([
   'draft_pre_meeting_email',
   'add_followup_task',
@@ -275,6 +306,7 @@ export const PANEL_PROPS = {
   overdue_queue: OverdueQueueProps,
   blocker_chain: BlockerChainProps,
   workload_bars: WorkloadBarsProps,
+  sales_pulse: SalesPulseProps,
   action_bar: ActionBarProps,
 } as const;
 

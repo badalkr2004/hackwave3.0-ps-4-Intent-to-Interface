@@ -17,6 +17,7 @@ export const NEED_QUESTIONS: Record<NeedType, string> = {
   blockers: 'What is blocking what?',
   capacity: 'Who has capacity?',
   available_actions: 'What can I do now?',
+  sales_pulse: 'How is sales and marketing performing?',
 };
 
 export const SHAPE_TEMPLATES: Record<Shape, Partial<Record<NeedType, number>>> = {
@@ -26,6 +27,7 @@ export const SHAPE_TEMPLATES: Record<Shape, Partial<Record<NeedType, number>>> =
     open_issues: 0.5,
     usage_trend: 0.6,
     overdue_work: 0.55,
+    sales_pulse: 0.72,
     available_actions: 0.3,
   },
   prepare: {

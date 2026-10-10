@@ -688,13 +688,18 @@ function Shell({ children }: { children: React.ReactNode }) {
             Organization desk
           </p>
         </div>
-        <a
-          href="/"
-          className="inline-flex min-h-10 items-center gap-2 text-sm text-accent-text hover:underline"
-        >
-          <ArrowLeft aria-hidden className="size-3.5" />
-          Workspace
-        </a>
+        <div className="flex items-center gap-4">
+          <a href="/analytics" className="text-sm text-accent-text hover:underline">
+            Analytics
+          </a>
+          <a
+            href="/"
+            className="inline-flex min-h-10 items-center gap-2 text-sm text-accent-text hover:underline"
+          >
+            <ArrowLeft aria-hidden className="size-3.5" />
+            Workspace
+          </a>
+        </div>
       </header>
       {children}
     </div>

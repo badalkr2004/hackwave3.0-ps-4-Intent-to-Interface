@@ -36,7 +36,13 @@ actionsRouter.post('/actions/draft-email', async (req, res, next) => {
     return;
   }
   try {
-    const data = await loadScopeData(db, scope, startOfDay(new Date()), session.allowedClientIds);
+    const data = await loadScopeData(
+      db,
+      scope,
+      startOfDay(new Date()),
+      session.allowedClientIds,
+      session.organizationId,
+    );
     const draft = await draftEmail(body.kind, await buildDigest(data.ctx), scope.clientId);
     res.json({ subject: draft.subject, body: draft.body } satisfies DraftEmailResponse);
   } catch (err) {

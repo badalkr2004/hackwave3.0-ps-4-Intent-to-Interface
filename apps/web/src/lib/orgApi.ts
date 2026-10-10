@@ -173,6 +173,68 @@ export async function fetchAudit(orgId: string) {
   return json<{ items: AuditItem[] }>(`/api/orgs/${encodeURIComponent(orgId)}/audit`);
 }
 
+export type AnalyticsRange = '30d' | '90d' | 'ytd';
+
+export type AnalyticsReport = {
+  organizationId: string;
+  range: AnalyticsRange;
+  clientId: string | null;
+  insight: string;
+  kpis: {
+    pipelineValue: number;
+    weightedForecast: number;
+    winRate: number;
+    openDeals: number;
+    campaignSpend: number;
+    attributedRevenue: number;
+    leads: number;
+  };
+  byStage: { stage: string; count: number; amount: number }[];
+  byChannel: { channel: string; spend: number; leads: number; revenue: number }[];
+  byClient: { clientId: string; clientName: string; pipeline: number; won: number }[];
+  trend: { week: string; pipeline: number; leads: number; spend: number }[];
+  winLoss: { reason: string; count: number; amount: number }[];
+  funnel: { step: string; count: number }[];
+  opportunities: {
+    id: string;
+    clientId: string;
+    clientName: string;
+    name: string;
+    stage: string;
+    amount: number;
+    probability: number;
+    owner: string | null;
+    expectedClose: string | null;
+    sourceChannel: string;
+    lostReason: string | null;
+  }[];
+  campaigns: {
+    id: string;
+    name: string;
+    channel: string;
+    status: string;
+    spend: number;
+    leads: number;
+    mqls: number;
+    opportunities: number;
+    revenueAttributed: number;
+    clientId: string | null;
+  }[];
+};
+
+export async function fetchAnalytics(
+  orgId: string,
+  opts: { range?: AnalyticsRange; clientId?: string | null } = {},
+) {
+  const q = new URLSearchParams();
+  if (opts.range) q.set('range', opts.range);
+  if (opts.clientId) q.set('clientId', opts.clientId);
+  const qs = q.toString();
+  return json<AnalyticsReport>(
+    `/api/orgs/${encodeURIComponent(orgId)}/analytics${qs ? `?${qs}` : ''}`,
+  );
+}
+
 export function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

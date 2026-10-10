@@ -112,3 +112,32 @@ export function withPins(base: readonly Need[], pinned: Iterable<string>): Need[
   }
   return needs;
 }
+
+/**
+ * When the user asked for a sales chart format, promote sales_pulse so the auction
+ * sizes it large — same need/auction path as every other panel.
+ */
+export function withSalesVizBoost(base: readonly Need[]): Need[] {
+  const needs = base.map((n) => ({ ...n }));
+  const sales = needs.find((n) => n.type === 'sales_pulse');
+  if (sales) {
+    sales.priority = 1;
+    sales.source = 'llm_adjusted';
+    sales.reason = 'Requested a sales / marketing chart format.';
+  } else {
+    needs.push({
+      type: 'sales_pulse',
+      question: NEED_QUESTIONS.sales_pulse,
+      priority: 1,
+      source: 'llm_added',
+      reason: 'Requested a sales / marketing chart format.',
+    });
+  }
+  // Free center-zone budget so sales_pulse can land at L.
+  for (const n of needs) {
+    if (n.type === 'usage_trend' || n.type === 'overdue_work') {
+      n.priority = Math.min(n.priority, 0.35);
+    }
+  }
+  return needs;
+}

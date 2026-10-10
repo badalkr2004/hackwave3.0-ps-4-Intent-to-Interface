@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
-import { MAX_STACK_DEPTH, type Interpretation, type Need, type UISpec } from '@gestalt/shared';
+import {
+  MAX_STACK_DEPTH,
+  type Interpretation,
+  type Need,
+  type UISpec,
+  type VizChart,
+} from '@gestalt/shared';
 
 export interface Session {
   id: string;
@@ -12,6 +18,11 @@ export interface Session {
    * Empty array = signed-in org with no linked clients.
    */
   allowedClientIds: readonly string[] | null;
+  /**
+   * Chart format from the latest sales/marketing NL request (compose).
+   * Applied to the sales_pulse registry module via preferredChart.
+   */
+  preferredViz: VizChart | null;
   /** Compositions, newest last; the last one is on screen. */
   stack: UISpec[];
   pinned: Set<string>;
@@ -42,6 +53,7 @@ export function createSession(opts?: {
     userId: opts?.userId ?? null,
     organizationId: opts?.organizationId ?? null,
     allowedClientIds: opts?.allowedClientIds ?? null,
+    preferredViz: null,
     stack: [],
     pinned: new Set(opts?.pinned ?? []),
     dismissed: new Set(opts?.dismissed ?? []),

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { requestUser } from '../lib/requestUser';
+import { buildAnalyticsReport } from '../services/analytics';
 import { listAudit } from '../services/audit';
 import { extractMomText } from '../services/momExtract';
 import { listActionItems, rollSla, updateActionItem } from '../services/orgActions';
@@ -280,5 +281,27 @@ orgsRouter.get('/orgs/:orgId/audit', async (req, res) => {
     res.json({ items });
   } catch (e) {
     res.status(403).json({ error: e instanceof Error ? e.message : 'Forbidden' });
+  }
+});
+
+orgsRouter.get('/orgs/:orgId/analytics', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const rangeRaw = String(req.query.range ?? '90d');
+  const range: '30d' | '90d' | 'ytd' =
+    rangeRaw === '30d' || rangeRaw === 'ytd' ? rangeRaw : '90d';
+  const clientId =
+    typeof req.query.clientId === 'string' && req.query.clientId.trim()
+      ? req.query.clientId.trim()
+      : null;
+  try {
+    const report = await buildAnalyticsReport(String(req.params.orgId), user.id, {
+      range,
+      clientId,
+    });
+    res.json(report);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Forbidden';
+    res.status(msg.includes('not in this organization') ? 400 : 403).json({ error: msg });
   }
 });

@@ -571,6 +571,28 @@ export const SAMPLE_PROPS: { [K in ComponentId]: PanelProps<K> } = {
       },
     ],
   },
+  sales_pulse: {
+    pipelineValue: 767000,
+    weightedForecast: 312000,
+    winRate: 0.5,
+    openDeals: 5,
+    topClientName: 'Acme Corp',
+    topClientShare: 0.72,
+    byStage: [
+      { stage: 'lead', amount: 28000 },
+      { stage: 'qualified', amount: 145000 },
+      { stage: 'proposal', amount: 114000 },
+      { stage: 'negotiation', amount: 480000 },
+    ],
+    trend: [
+      { week: '2025-08-18', leads: 42, spend: 12000 },
+      { week: '2025-08-25', leads: 38, spend: 11000 },
+      { week: '2025-09-01', leads: 51, spend: 14000 },
+      { week: '2025-09-08', leads: 47, spend: 13500 },
+    ],
+    preferredChart: 'bars',
+    insight: 'Acme Corp holds 72% of open pipeline.',
+  },
   action_bar: {
     actions: [
       { id: 'draft_pre_meeting_email', label: 'Draft pre-meeting email', kind: 'draft_email' },
@@ -602,6 +624,18 @@ export const EMPTY_PROPS: { [K in ComponentId]: PanelProps<K> } = {
   overdue_queue: { scopeLabel: 'All projects', overdueCount: 0, tasks: [] },
   blocker_chain: { projectName: 'v2.4 export hotfix', tasks: [] },
   workload_bars: { people: [] },
+  sales_pulse: {
+    pipelineValue: 0,
+    weightedForecast: 0,
+    winRate: 0,
+    openDeals: 0,
+    topClientName: null,
+    topClientShare: 0,
+    byStage: [],
+    trend: [],
+    preferredChart: 'bars',
+    insight: 'No open pipeline for this organization.',
+  },
   action_bar: { actions: [] },
 };
 

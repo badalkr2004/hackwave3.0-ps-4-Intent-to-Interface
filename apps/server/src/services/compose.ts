@@ -5,17 +5,18 @@ import {
   type Intent,
   type Need,
   type Panel,
+  type PanelProps,
   type UISpec,
 } from '@gestalt/shared';
 import { getDb } from '../db/client';
 import { getDbState } from '../db/state';
 import { startOfDay } from '../lib/dates';
 import { current, pushSpec, type Session } from '../session';
-import { runAuction, type ComponentData } from './auction';
+import { runAuction, type ComponentData, type PlannedPanel } from './auction';
 import { generateCopy, type CopyId } from './copy';
 import { componentData, loadScopeData, type ScopeData } from './data';
 import { buildDigest, type Digest } from './digest';
-import { planNeeds, withPins } from './needs';
+import { planNeeds, withPins, withSalesVizBoost } from './needs';
 
 export interface DeferredJob {
   panelId: string;
@@ -51,7 +52,13 @@ const asRecord = (props: unknown): Record<string, unknown> =>
 async function loadData(session: Session, intent: Intent): Promise<ScopeData | null> {
   const db = getDbState() === 'up' ? getDb() : null;
   return db
-    ? loadScopeData(db, intent.scope, startOfDay(new Date()), session.allowedClientIds)
+    ? loadScopeData(
+        db,
+        intent.scope,
+        startOfDay(new Date()),
+        session.allowedClientIds,
+        session.organizationId,
+      )
     : null;
 }
 
@@ -76,10 +83,12 @@ export async function compose(
     baseNeeds = planned.needs;
     degraded ||= planned.degraded;
   }
+  if (session.preferredViz) baseNeeds = withSalesVizBoost(baseNeeds);
   const needs = withPins(baseNeeds, session.pinned);
 
   opts.onStage?.('composing');
   const cd = data ? await componentData(data, intent.shape) : emptyData();
+  applyPreferredViz(cd, session);
   const {
     panels: planned,
     receipts,
@@ -92,6 +101,8 @@ export async function compose(
     pinned: session.pinned,
     dismissed: session.dismissed,
   });
+
+  if (session.preferredViz) featureSalesPulse(planned);
 
   const deferred: DeferredJob[] = [];
   const panels: Panel[] = planned.map((p) => {
@@ -206,4 +217,30 @@ export class SupersededError extends Error {
   constructor() {
     super('Superseded by a newer request');
   }
+}
+
+/** Stamps preferredChart onto sales_pulse props and boosts its auction signal. */
+function applyPreferredViz(cd: Record<string, ComponentData>, session: Session): void {
+  const chart = session.preferredViz;
+  if (!chart) return;
+  const row = cd.sales_pulse;
+  if (!row?.props || typeof row.props !== 'object') return;
+  const props = {
+    ...(row.props as PanelProps<'sales_pulse'>),
+    preferredChart: chart,
+  };
+  cd.sales_pulse = {
+    ...row,
+    props,
+    signal: Math.max(row.signal, 0.95),
+  };
+}
+
+/** Center-stage the sales pulse at L when the user asked for a chart format. */
+function featureSalesPulse(panels: PlannedPanel[]): void {
+  const sales = panels.find((p) => p.componentId === 'sales_pulse');
+  if (!sales) return;
+  sales.zone = 'center';
+  sales.size = 'L';
+  sales.order = 0;
 }

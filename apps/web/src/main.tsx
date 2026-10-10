@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './design/base.css';
+import { AnalyticsPage } from './analytics/AnalyticsPage';
 import { App } from './App';
 import { LoginPage } from './auth/LoginPage';
 import { OnboardPage } from './auth/OnboardPage';
@@ -19,6 +20,7 @@ function pageFor(pathname: string) {
   if (pathname.startsWith('/login')) return <LoginPage />;
   if (pathname.startsWith('/signup')) return <SignupPage />;
   if (pathname.startsWith('/onboard')) return <OnboardPage />;
+  if (pathname.startsWith('/analytics')) return <AnalyticsPage />;
   if (pathname.startsWith('/org')) return <OrgHub />;
   return <App />;
 }

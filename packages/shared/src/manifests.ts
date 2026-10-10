@@ -172,6 +172,14 @@ export const MANIFESTS: readonly ComponentManifest[] = [
     place('C7', 'C8', 'C8', 'C2'),
   ),
   manifest(
+    'sales_pulse',
+    'Sales pulse',
+    'How is sales and marketing performing?',
+    [['sales_pulse', 1]],
+    ['S', 'M', 'L'],
+    place('R4', 'R5', 'R6', 'R6'),
+  ),
+  manifest(
     'action_bar',
     'Actions',
     'What can I do now?',

@@ -9,6 +9,9 @@ import {
   ResolveRequest,
   computeDiff,
   isComponentId,
+  parseSalesVizRequest,
+  salesVizHeadline,
+  salesVizSummary,
   type GhostLayout,
   type Intent,
   type SessionResponse,
@@ -212,6 +215,24 @@ sessionRouter.post('/session/:id/compose', async (req, res) => {
   const stream = beginStream(session, res, body.requestId);
   await runStream(session, stream, async () => {
     stream.send({ type: 'status', stage: 'parsing' });
+
+    // Sales chart asks go through the same compose → needs → auction → registry path
+    // as every other prompt; preferredViz stamps the chart format onto sales_pulse.
+    const viz = parseSalesVizRequest(body.text);
+    session.preferredViz = viz?.chart ?? null;
+    if (viz) {
+      const intent: Intent = {
+        shape: 'overview',
+        scope: { clientId: null, projectId: null, timeRange: '30d' },
+        confidence: 0.9,
+        summary: salesVizSummary(viz.chart),
+        headline: salesVizHeadline(viz.chart),
+      };
+      session.pendingClarification = null;
+      await streamIntent(session, stream, intent, body.requestId, false);
+      return;
+    }
+
     const ents = await entitiesFor(session);
     const on = current(session)?.intent ?? null;
     const { parsed, source } = await parseIntent(
@@ -294,6 +315,7 @@ sessionRouter.post('/session/:id/home', async (req, res, next) => {
   if (!session) return;
   session.pinned.clear();
   session.dismissed.clear();
+  session.preferredViz = null;
   session.pendingClarification = null;
   await persistPrefs(session);
   await exclusive(session, res, next, (signal) =>
