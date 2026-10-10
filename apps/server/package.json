@@ -12,6 +12,7 @@
     "db:migrate": "bun src/db/cli.ts migrate",
     "db:seed": "bun src/db/cli.ts seed",
     "db:reset": "bun src/db/cli.ts reset",
+    "db:check": "bun src/db/check.ts",
     "llm:smoke": "bun src/llm/smoke.ts"
   },
   "dependencies": {

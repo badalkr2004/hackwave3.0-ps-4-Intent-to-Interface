@@ -43,6 +43,7 @@ export function SegmentBreakdown({ props, size }: PanelViewProps<'segment_breakd
                       <span
                         className={`text-right font-medium tabular-nums ${down && i === 0 ? 'text-danger' : 'text-text'}`}
                       >
+                        <span className="sr-only">{down ? 'Down ' : 'Up '}</span>
                         {formatPct(s.deltaPct)}
                         {size === 'L' && (
                           <span className="block text-xs font-normal text-muted">

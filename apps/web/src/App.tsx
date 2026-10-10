@@ -6,6 +6,7 @@ import { intentEditedSince, isTypingTarget } from './lib/typing';
 import { DiffRibbon } from './shell/DiffRibbon';
 import { GhostPreviews } from './shell/GhostPreviews';
 import { HEADLINE_ID, INTENT_INPUT_ID, WHY_DRAWER_HEADING_ID, panelHeadingId } from './shell/ids';
+import { DegradedBanner } from './shell/DegradedBanner';
 import { EmailDialog } from './shell/EmailDialog';
 import { Toast } from './shell/Toast';
 import { Headline } from './shell/Headline';
@@ -114,6 +115,7 @@ export function App() {
       </header>
 
       <main id="workspace" className="mx-auto flex max-w-[1400px] flex-col gap-4 px-5 pb-6">
+        <DegradedBanner show={s.degraded} />
         {s.error && (
           <p
             role="alert"
@@ -179,7 +181,6 @@ export function App() {
         )}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <span>Gestalt</span>
-          {s.degraded && <span>Some content used offline mode</span>}
           <a href="/gallery" className="text-accent-text underline">
             Component gallery
           </a>

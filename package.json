@@ -8,10 +8,11 @@
   ],
   "scripts": {
     "dev": "concurrently -k -n server,web -c blue,magenta \"bun run --cwd apps/server dev\" \"bun run --cwd apps/web dev\"",
-    "demo:offline": "FORCE_FALLBACK=1 bun run dev",
+    "demo:offline": "cross-env FORCE_FALLBACK=1 bun run dev",
     "db:migrate": "bun run --cwd apps/server db:migrate",
     "db:seed": "bun run --cwd apps/server db:seed",
     "db:reset": "bun run --cwd apps/server db:reset",
+    "db:check": "bun run --cwd apps/server db:check",
     "llm:smoke": "bun run --cwd apps/server llm:smoke",
     "build": "bun run --filter '*' build",
     "typecheck": "bun run --filter '*' typecheck",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.0",
     "concurrently": "^9.2.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.39.0",
     "eslint-plugin-react-hooks": "^7.0.0",
     "globals": "^16.0.0",

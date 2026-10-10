@@ -19,9 +19,11 @@ export function IntentBar({
   onHome,
 }: IntentBarProps) {
   const [text, setText] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = INTENT_INPUT_ID;
   const hintId = useId();
+  const errorId = useId();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -36,7 +38,15 @@ export function IntentBar({
 
   const submit = (value: string) => {
     const trimmed = value.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      setError('Enter what you are working on.');
+      return;
+    }
+    if (trimmed.length > 500) {
+      setError('Keep the request under 500 characters.');
+      return;
+    }
+    setError(null);
     onSubmit(trimmed);
   };
 
@@ -64,17 +74,18 @@ export function IntentBar({
           maxLength={500}
           onChange={(e) => {
             setText(e.target.value);
+            if (error) setError(null);
             markIntentEdited();
           }}
           placeholder="What are you working on?"
-          aria-describedby={hintId}
+          aria-describedby={error ? `${hintId} ${errorId}` : hintId}
+          aria-invalid={error ? true : undefined}
           autoComplete="off"
           className="min-h-11 min-w-0 flex-1 rounded-md border border-border bg-surface px-3 text-md text-text shadow-panel placeholder:text-muted"
         />
         <button
           type="submit"
-          disabled={!text.trim()}
-          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-surface disabled:opacity-50"
+          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-surface"
         >
           {busy ? (
             <LoaderCircle aria-hidden className="size-4 animate-spin" />
@@ -95,6 +106,11 @@ export function IntentBar({
       <p id={hintId} className="sr-only">
         Press slash to focus this field from anywhere.
       </p>
+      {error && (
+        <p id={errorId} role="alert" className="text-sm text-danger">
+          {error}
+        </p>
+      )}
       {showSuggestions && !busy && demoPrompts.length > 0 && (
         <ul aria-label="Suggestions" className="flex flex-wrap gap-2">
           {demoPrompts.map((p) => (

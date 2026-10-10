@@ -42,12 +42,21 @@ export function WorkloadBars({ props, size }: PanelViewProps<'workload_bars'>) {
                   )}
                 </span>
               </div>
-              <Meter
-                value={p.capacityPct}
-                max={SCALE_MAX}
-                marker={100}
-                tone={isOver ? 'danger' : 'accent'}
-              />
+              <div
+                role="meter"
+                aria-label={`${p.name} capacity`}
+                aria-valuemin={0}
+                aria-valuemax={SCALE_MAX}
+                aria-valuenow={p.capacityPct}
+                aria-valuetext={`${p.capacityPct} percent${isOver ? ', over capacity' : ''}`}
+              >
+                <Meter
+                  value={p.capacityPct}
+                  max={SCALE_MAX}
+                  marker={100}
+                  tone={isOver ? 'danger' : 'accent'}
+                />
+              </div>
               {size !== 'S' && (
                 <p className="text-xs text-muted">
                   {p.openTasks} open tasks
