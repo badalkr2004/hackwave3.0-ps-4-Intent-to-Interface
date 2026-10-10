@@ -137,11 +137,37 @@ export function Delta({ pct, className = '' }: { pct: number | null; className?:
   );
 }
 
-export function EmptyState({ message = 'Nothing to show for this scope.' }: { message?: string }) {
+export function EmptyState({
+  message = 'Nothing to show for this scope.',
+  hint = 'Try another client, a wider time range, or the portfolio overview.',
+}: {
+  message?: string;
+  hint?: string;
+}) {
   return (
-    <div className="flex h-full min-h-20 flex-col items-center justify-center gap-2 text-center text-sm text-muted">
-      <Inbox aria-hidden className="size-5" />
-      <p>{message}</p>
+    <div className="flex h-full min-h-20 flex-col items-center justify-center gap-2 px-2 text-center">
+      <Inbox aria-hidden className="size-5 text-muted" />
+      <p className="text-sm text-text">{message}</p>
+      <p className="text-13 text-muted">{hint}</p>
+    </div>
+  );
+}
+
+export function ErrorState({
+  message = 'This panel could not load.',
+  hint = 'Hide it and bring it back, or refresh the workspace.',
+}: {
+  message?: string;
+  hint?: string;
+}) {
+  return (
+    <div
+      role="alert"
+      className="flex h-full min-h-20 flex-col items-center justify-center gap-2 px-2 text-center"
+    >
+      <OctagonAlert aria-hidden className="size-5 text-danger" />
+      <p className="text-sm text-text">{message}</p>
+      <p className="text-13 text-muted">{hint}</p>
     </div>
   );
 }

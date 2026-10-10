@@ -1,23 +1,18 @@
 import { Component, useState, type ErrorInfo, type ReactNode } from 'react';
-import { CircleAlert, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import type { Panel } from '@gestalt/shared';
 import { getPanelEntry, PanelPropsError } from '../panels';
+import { ErrorState } from '../panels/ui';
 
 function PanelErrorState({ onRetry }: { onRetry?: () => void }) {
   return (
-    <div
-      role="alert"
-      className="flex h-full min-h-20 flex-col items-center justify-center gap-2 text-center text-sm"
-    >
-      <p className="inline-flex items-center gap-2 text-danger">
-        <CircleAlert aria-hidden className="size-4" />
-        This panel could not load.
-      </p>
+    <div className="flex h-full flex-col items-center justify-center gap-2">
+      <ErrorState />
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border px-3 text-text hover:bg-surface-2"
+          className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border px-3 text-sm text-text transition-colors duration-150 hover:bg-surface-2"
         >
           <RotateCcw aria-hidden className="size-4" /> Retry
         </button>

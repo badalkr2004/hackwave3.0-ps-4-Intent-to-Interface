@@ -51,8 +51,8 @@ export function ZoneGrid({
           exit: { opacity: 0, transition: { duration: 0.15 } },
           transition: {
             layout: layoutTransition,
-            opacity: { duration: 0.2, delay: (Math.min(index, STAGGER_CAP) * STAGGER_MS) / 1000 },
-            scale: { duration: 0.2, delay: (Math.min(index, STAGGER_CAP) * STAGGER_MS) / 1000 },
+            opacity: { duration: 0.15, delay: (Math.min(index, STAGGER_CAP) * STAGGER_MS) / 1000 },
+            scale: { duration: 0.15, delay: (Math.min(index, STAGGER_CAP) * STAGGER_MS) / 1000 },
           },
         };
 
