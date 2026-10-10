@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { MAX_STACK_DEPTH, type Interpretation, type UISpec } from '@gestalt/shared';
+import { MAX_STACK_DEPTH, type Interpretation, type Need, type UISpec } from '@gestalt/shared';
 
 export interface Session {
   id: string;
@@ -8,10 +8,12 @@ export interface Session {
   pinned: Set<string>;
   dismissed: Set<string>;
   version: number;
-  /** Interpretations offered by the last clarify event, for /resolve. */
-  pendingClarify: Interpretation[] | null;
-  /** Aborts the in-flight compose stream when a newer request arrives. */
-  inflight: AbortController | null;
+  /** Needs each composition was planned with (before pins), reused by pin and dismiss. */
+  baseNeeds: WeakMap<UISpec, Need[]>;
+  /** The last clarify event's request, for /resolve. */
+  pendingClarification: { text: string; interpretations: Interpretation[] } | null;
+  /** The in-flight compose stream; a newer request aborts it. */
+  inflight: { requestId: string; abort: AbortController } | null;
   lastSeen: number;
 }
 
@@ -26,7 +28,8 @@ export function createSession(): Session {
     pinned: new Set(),
     dismissed: new Set(),
     version: 0,
-    pendingClarify: null,
+    baseNeeds: new WeakMap(),
+    pendingClarification: null,
     inflight: null,
     lastSeen: Date.now(),
   };
@@ -44,11 +47,23 @@ export function current(session: Session): UISpec | null {
   return session.stack[session.stack.length - 1] ?? null;
 }
 
-/** Pushes a new composition, or replaces the top when the task stays the same (a refinement). */
+/** Pushes a new composition, or replaces the top one (pin and dismiss recompose in place). */
 export function pushSpec(session: Session, spec: UISpec, replaceTop: boolean): void {
   if (replaceTop && session.stack.length > 0) session.stack[session.stack.length - 1] = spec;
   else session.stack.push(spec);
   while (session.stack.length > MAX_STACK_DEPTH + 1) session.stack.shift();
+}
+
+/** Pins and dismissals persist for the session but reset when the client in scope changes. */
+export function resetPreferencesOnClientChange(
+  session: Session,
+  nextClientId: string | null,
+): void {
+  const prev = current(session)?.intent.scope.clientId ?? null;
+  if (prev !== nextClientId) {
+    session.pinned.clear();
+    session.dismissed.clear();
+  }
 }
 
 function sweep(): void {

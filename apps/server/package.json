@@ -11,10 +11,15 @@
     "test": "vitest run",
     "db:migrate": "bun src/db/cli.ts migrate",
     "db:seed": "bun src/db/cli.ts seed",
-    "db:reset": "bun src/db/cli.ts reset"
+    "db:reset": "bun src/db/cli.ts reset",
+    "llm:smoke": "bun src/llm/smoke.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.78",
+    "@ai-sdk/groq": "^4.0.59",
+    "@ai-sdk/openai": "^4.0.91",
     "@gestalt/shared": "workspace:*",
+    "ai": "^7.0.137",
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",

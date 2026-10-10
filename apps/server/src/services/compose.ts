@@ -3,6 +3,7 @@ import {
   MANIFESTS_BY_ID,
   computeDiff,
   type Intent,
+  type Need,
   type Panel,
   type UISpec,
 } from '@gestalt/shared';
@@ -11,44 +12,72 @@ import { getDbState } from '../db/state';
 import { startOfDay } from '../lib/dates';
 import { current, pushSpec, type Session } from '../session';
 import { runAuction, type ComponentData } from './auction';
-import { componentData, loadScopeData } from './data';
-import { planNeeds } from './needs';
+import { generateCopy, type CopyId } from './copy';
+import { componentData, loadScopeData, type ScopeData } from './data';
+import { buildDigest, type Digest } from './digest';
+import { planNeeds, withPins } from './needs';
 
 export interface DeferredJob {
   panelId: string;
-  /** Resolves the generated props for a deferred panel. */
-  run: () => Promise<{ props: Record<string, unknown>; degraded: boolean }>;
+  /** Generated props for a deferred panel; `null` means it could not be produced. */
+  run: () => Promise<{ props: Record<string, unknown>; degraded: boolean } | null>;
 }
 
 export interface Composition {
   spec: UISpec;
+  /** Needs before pins were applied, reused by pin and dismiss without a new LLM call. */
+  baseNeeds: Need[];
   deferred: DeferredJob[];
 }
 
-async function auctionData(intent: Intent): Promise<Record<string, ComponentData>> {
-  const db = getDbState() === 'up' ? getDb() : null;
-  if (!db)
-    return Object.fromEntries(
-      MANIFESTS.map((m) => [m.id, { props: null, signal: 0, evidence: [] }]),
-    );
-  const data = await loadScopeData(db, intent.scope, startOfDay(new Date()));
-  return componentData(data, intent.shape);
+export interface ComposeOptions {
+  /** True if an earlier stage (intent parsing) already fell back. */
+  degraded: boolean;
+  /** Reuse these needs instead of planning (pin, dismiss). */
+  reuseNeeds?: Need[];
+  /** Reuse generated copy from this composition instead of writing it again (pin, dismiss). */
+  reuseCopyFrom?: UISpec;
+  signal?: AbortSignal;
+  /** Called between stages so the route can stream status events. */
+  onStage?: (stage: 'fetching' | 'planning' | 'composing') => void;
 }
+
+const emptyData = (): Record<string, ComponentData> =>
+  Object.fromEntries(MANIFESTS.map((m) => [m.id, { props: null, signal: 0, evidence: [] }]));
 
 const asRecord = (props: unknown): Record<string, unknown> =>
   props && typeof props === 'object' ? (props as Record<string, unknown>) : {};
 
+async function loadData(intent: Intent): Promise<ScopeData | null> {
+  const db = getDbState() === 'up' ? getDb() : null;
+  return db ? loadScopeData(db, intent.scope, startOfDay(new Date())) : null;
+}
+
 /**
- * Builds the next composition for an intent and pushes it onto the session stack. Deferred panels
- * are emitted as `loading` and returned as jobs, so callers can stream them as patches.
+ * Builds the next composition for an intent (Section 11.3). Does not touch the session stack;
+ * call `commit` once the request is known to be current.
  */
 export async function compose(
   session: Session,
   intent: Intent,
-  opts: { degraded: boolean; replaceTop: boolean },
+  opts: ComposeOptions,
 ): Promise<Composition> {
-  const needs = planNeeds(intent.shape, session.pinned);
-  const data = await auctionData(intent);
+  opts.onStage?.('fetching');
+  const data = await loadData(intent);
+  const digest: Digest | null = data ? await buildDigest(data.ctx) : null;
+
+  opts.onStage?.('planning');
+  let degraded = opts.degraded;
+  let baseNeeds = opts.reuseNeeds;
+  if (!baseNeeds) {
+    const planned = await planNeeds(intent.shape, digest, intent.scope.clientId, opts.signal);
+    baseNeeds = planned.needs;
+    degraded ||= planned.degraded;
+  }
+  const needs = withPins(baseNeeds, session.pinned);
+
+  opts.onStage?.('composing');
+  const cd = data ? await componentData(data, intent.shape) : emptyData();
   const {
     panels: planned,
     receipts,
@@ -57,18 +86,33 @@ export async function compose(
     shape: intent.shape,
     needs,
     manifests: MANIFESTS,
-    data,
+    data: cd,
     pinned: session.pinned,
     dismissed: session.dismissed,
   });
 
   const deferred: DeferredJob[] = [];
   const panels: Panel[] = planned.map((p) => {
-    const isDeferred = MANIFESTS_BY_ID[p.componentId]?.deferred ?? false;
-    const props = asRecord(data[p.componentId]?.props);
+    const written = opts.reuseCopyFrom?.panels.find(
+      (x) => x.id === p.componentId && x.status === 'ready',
+    );
+    const isDeferred = (MANIFESTS_BY_ID[p.componentId]?.deferred ?? false) && !!digest && !written;
+    if (written && MANIFESTS_BY_ID[p.componentId]?.deferred) {
+      cd[p.componentId] = { ...cd[p.componentId]!, props: written.props };
+    }
     if (isDeferred) {
-      // M2: the rule-based copy computed by the loader is the generated content.
-      deferred.push({ panelId: p.componentId, run: async () => ({ props, degraded: false }) });
+      deferred.push({
+        panelId: p.componentId,
+        run: async () => {
+          const res = await generateCopy(
+            p.componentId as CopyId,
+            digest!,
+            intent.scope.clientId,
+            opts.signal,
+          );
+          return res && { props: asRecord(res.props), degraded: res.degraded };
+        },
+      });
     }
     return {
       id: p.componentId,
@@ -80,28 +124,33 @@ export async function compose(
       order: p.order,
       status: isDeferred ? 'loading' : 'ready',
       pinned: p.pinned,
-      props: isDeferred ? {} : props,
+      props: isDeferred ? {} : asRecord(cd[p.componentId]?.props),
     };
   });
 
-  const prev = current(session);
-  session.version += 1;
+  const version = session.version + 1;
   const spec: UISpec = {
-    id: `${session.id.slice(0, 8)}-v${session.version}`,
-    version: session.version,
+    id: `${session.id.slice(0, 8)}-v${version}`,
+    version,
     intent,
     needs,
     panels,
     receipts,
     excluded,
-    diff: computeDiff(prev, { panels }),
-    degraded: opts.degraded,
+    diff: computeDiff(current(session), { panels }),
+    degraded,
   };
-  pushSpec(session, spec, opts.replaceTop);
-  return { spec, deferred };
+  return { spec, baseNeeds, deferred };
 }
 
-/** Applies a finished deferred job to the stored spec so Back and refresh show the final content. */
+/** Records a finished composition: pushes it (or replaces the top) and remembers its needs. */
+export function commit(session: Session, c: Composition, replaceTop: boolean): void {
+  session.version = c.spec.version;
+  session.baseNeeds.set(c.spec, c.baseNeeds);
+  pushSpec(session, c.spec, replaceTop);
+}
+
+/** Applies a finished deferred job to the stored spec so Back restores the final content. */
 export function applyPatch(
   spec: UISpec,
   panelId: string,
@@ -114,21 +163,37 @@ export function applyPatch(
   panel.status = ok ? 'ready' : 'error';
 }
 
-/** Composes and resolves deferred panels inline (for non-streaming routes like pin and dismiss). */
+/** Runs every deferred job, patching the spec in place and reporting each result. */
+export async function fillDeferred(
+  spec: UISpec,
+  jobs: DeferredJob[],
+  onPatch?: (panelId: string, ok: boolean, props: Record<string, unknown>) => void,
+): Promise<void> {
+  await Promise.all(
+    jobs.map(async (job) => {
+      let result: Awaited<ReturnType<DeferredJob['run']>> = null;
+      try {
+        result = await job.run();
+      } catch {
+        result = null;
+      }
+      const ok = result !== null;
+      const props = result?.props ?? {};
+      if (!ok || result?.degraded) spec.degraded = true;
+      applyPatch(spec, job.panelId, props, ok);
+      onPatch?.(job.panelId, ok, props);
+    }),
+  );
+}
+
+/** Composes, resolves deferred panels inline, and commits (non-streaming routes). */
 export async function composeNow(
   session: Session,
   intent: Intent,
-  opts: { degraded: boolean; replaceTop: boolean },
+  opts: ComposeOptions & { replaceTop: boolean },
 ): Promise<UISpec> {
-  const { spec, deferred } = await compose(session, intent, opts);
-  for (const job of deferred) {
-    try {
-      const { props, degraded } = await job.run();
-      applyPatch(spec, job.panelId, props, true);
-      if (degraded) spec.degraded = true;
-    } catch {
-      applyPatch(spec, job.panelId, {}, false);
-    }
-  }
-  return spec;
+  const c = await compose(session, intent, opts);
+  await fillDeferred(c.spec, c.deferred);
+  commit(session, c, opts.replaceTop);
+  return c.spec;
 }

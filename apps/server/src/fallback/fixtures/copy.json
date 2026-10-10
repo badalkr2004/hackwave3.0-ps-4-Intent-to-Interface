@@ -1,0 +1,67 @@
+{
+  "talking_points:acme": {
+    "points": [
+      {
+        "type": "acknowledge",
+        "headline": "Own the export failures before they raise them",
+        "detail": "Large CSV exports time out and scheduled exports fail silently since v2.4. Rohan said it is blocking their month-end close.",
+        "evidence": ["ticket:T-1", "ticket:T-2", "comm:c1"]
+      },
+      {
+        "type": "acknowledge",
+        "headline": "We missed the scheduled exports promise",
+        "detail": "Scheduled exports were committed at the Q3 review and the date has passed. Say so plainly.",
+        "evidence": ["commitment:m1-1"]
+      },
+      {
+        "type": "ask",
+        "headline": "Ask how finance is closing the month today",
+        "detail": "Finance usage fell the most and Priya says they reconcile by hand. Learn the cost and what would unblock them first.",
+        "evidence": ["seg:team:finance", "comm:c3"]
+      },
+      {
+        "type": "commit",
+        "headline": "Commit to a fix date tied to the export hotfix",
+        "detail": "The export pagination fix is in progress but late. Give a date you can keep and offer a status update until it ships.",
+        "evidence": ["task:T1", "commitment:m1-1"]
+      },
+      {
+        "type": "commit",
+        "headline": "Book the finance onboarding session",
+        "detail": "The dedicated finance onboarding is still open from the last review. Propose times in this meeting.",
+        "evidence": ["commitment:m1-3"]
+      },
+      {
+        "type": "risk",
+        "headline": "Usage drop and a weak health score ahead of renewal",
+        "detail": "Usage is down sharply since v2.4 and health is 54. A second missed date would put the renewal at risk.",
+        "evidence": ["usage:acme", "client:acme"]
+      }
+    ]
+  },
+  "hypothesis_list:acme": {
+    "hypotheses": [
+      {
+        "title": "The v2.4 export pipeline broke large and scheduled exports",
+        "confidence": "high",
+        "explanation": "v2.4 replaced the export pipeline right before the drop, export usage fell about 71%, and three open tickets describe export timeouts, silent failures and a missing column.",
+        "evidence": ["rel:v2.4", "seg:feature:export", "ticket:T-1", "ticket:T-2"],
+        "howToConfirm": "Compare export error and timeout rates for Acme before and after v2.4."
+      },
+      {
+        "title": "Finance stopped using the product for month-end work",
+        "confidence": "medium",
+        "explanation": "Finance usage fell about 62%, and Acme says finance is reconciling by hand because scheduled exports stopped arriving.",
+        "evidence": ["seg:team:finance", "comm:c3", "ticket:T-2"],
+        "howToConfirm": "Ask Priya whether finance moved month-end reporting to spreadsheets."
+      },
+      {
+        "title": "Seat cleanup reduced the number of active users",
+        "confidence": "low",
+        "explanation": "A billing ticket questions the seat count, so fewer active seats could explain a small part of the drop.",
+        "evidence": ["ticket:T-4"],
+        "howToConfirm": "Compare active seats this month with the last invoice."
+      }
+    ]
+  }
+}

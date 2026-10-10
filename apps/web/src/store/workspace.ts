@@ -31,6 +31,8 @@ export interface WorkspaceState {
   degraded: boolean;
   announcement: string;
   actionsLog: { at: number; message: string }[];
+  toast: { id: number; message: string } | null;
+  email: EmailDraftState | null;
   error: string | null;
 
   init: () => Promise<void>;
@@ -40,22 +42,20 @@ export interface WorkspaceState {
   home: () => Promise<void>;
   pin: (componentId: string, pinned: boolean) => Promise<void>;
   dismiss: (componentId: string) => Promise<void>;
-  runAction: (action: ActionItem) => void;
+  runAction: (action: ActionItem) => Promise<void>;
+  closeEmail: () => void;
+  clearToast: (id: number) => void;
 }
+
+export type EmailDraftState =
+  | { status: 'loading'; title: string }
+  | { status: 'ready'; title: string; subject: string; body: string }
+  | { status: 'error'; title: string; error: string };
 
 let inflight: AbortController | null = null;
 let requestSeq = 0;
 
 const nextRequestId = () => `r${Date.now().toString(36)}-${++requestSeq}`;
-
-/** Same rule as the server: same shape and client refines the top composition instead of stacking. */
-function isRefinement(prev: UISpec | null, next: UISpec): boolean {
-  return (
-    !!prev &&
-    prev.intent.shape === next.intent.shape &&
-    prev.intent.scope.clientId === next.intent.scope.clientId
-  );
-}
 
 function rearrangedText(spec: UISpec): string {
   const n = spec.panels.length;
@@ -78,11 +78,14 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
       error: err instanceof Error ? err.message : 'Something went wrong',
     });
 
-  /** Shows a new composition, updating history the same way the server updates its stack. */
-  const showSpec = (spec: UISpec) => {
+  /**
+   * Shows a composition, mirroring the server stack: new compositions push the previous one onto
+   * the history; pin and dismiss replace the current one in place.
+   */
+  const showSpec = (spec: UISpec, mode: 'push' | 'replace' = 'push') => {
     const { spec: prev, history } = get();
     const nextHistory =
-      prev && !isRefinement(prev, spec)
+      prev && mode === 'push'
         ? [...history, prev.intent.headline].slice(-MAX_STACK_DEPTH)
         : history;
     set({
@@ -185,6 +188,8 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     degraded: false,
     announcement: '',
     actionsLog: [],
+    toast: null,
+    email: null,
     error: null,
 
     async init() {
@@ -219,15 +224,54 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
         })),
       ),
     home: () => call(api.goHome),
-    pin: (componentId, pinned) => call((id) => api.setPinned(id, componentId, pinned)),
-    dismiss: (componentId) => call((id) => api.dismissPanel(id, componentId)),
+    pin: (componentId, pinned) =>
+      call(
+        (id) => api.setPinned(id, componentId, pinned),
+        (spec) => showSpec(spec, 'replace'),
+      ),
+    dismiss: (componentId) =>
+      call(
+        (id) => api.dismissPanel(id, componentId),
+        (spec) => showSpec(spec, 'replace'),
+      ),
 
-    runAction(action) {
-      const message = `${action.label}: done (demo action).`;
-      set((s) => ({
-        actionsLog: [...s.actionsLog, { at: Date.now(), message }].slice(-20),
-        announcement: message,
-      }));
+    async runAction(action) {
+      const sessionId = get().sessionId;
+      if (!sessionId) return;
+      if (action.kind === 'draft_email') {
+        const kind = action.id === 'draft_pre_meeting_email' ? 'pre_meeting' : 'customer_update';
+        set({ email: { status: 'loading', title: action.label } });
+        try {
+          const draft = await api.draftEmail(sessionId, kind);
+          set({
+            email: { status: 'ready', title: action.label, ...draft },
+            announcement: 'Email draft ready',
+          });
+        } catch (err) {
+          set({
+            email: {
+              status: 'error',
+              title: action.label,
+              error: err instanceof Error ? err.message : 'Could not draft the email',
+            },
+          });
+        }
+        return;
+      }
+      try {
+        const { message } = await api.executeAction(sessionId, action.id, action.params);
+        set((s) => ({
+          actionsLog: [...s.actionsLog, { at: Date.now(), message }].slice(-20),
+          toast: { id: Date.now(), message },
+          announcement: message,
+        }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Action failed';
+        set({ toast: { id: Date.now(), message }, announcement: message });
+      }
     },
+
+    closeEmail: () => set({ email: null }),
+    clearToast: (id) => set((s) => (s.toast?.id === id ? { toast: null } : {})),
   };
 });

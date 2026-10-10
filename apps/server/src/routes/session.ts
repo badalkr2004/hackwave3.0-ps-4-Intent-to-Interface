@@ -15,20 +15,29 @@ import {
 } from '@gestalt/shared';
 import { getDb } from '../db/client';
 import { getDbState } from '../db/state';
-import { keywordIntent } from '../fallback/keywordIntent';
 import { log } from '../log';
 import { ghostLayout } from '../services/auction';
-import { applyPatch, compose, composeNow } from '../services/compose';
+import { commit, compose, composeNow, fillDeferred } from '../services/compose';
 import { loadEntities } from '../services/entities';
-import { OVERVIEW_INTENT, finalizeIntent, intentFrom } from '../services/intent';
-import { createSession, current, getSession, type Session } from '../session';
+import { OVERVIEW_INTENT, finalizeIntent, intentFrom, parseIntent } from '../services/intent';
+import {
+  createSession,
+  current,
+  getSession,
+  resetPreferencesOnClientChange,
+  type Session,
+} from '../session';
 import { openSse, type SseStream } from '../sse';
 
 export const sessionRouter = Router();
 
-const entities = () => loadEntities(getDbState() === 'up' ? getDb() : null);
+export const entities = () => loadEntities(getDbState() === 'up' ? getDb() : null);
 
-function parseBody<T extends z.ZodType>(schema: T, req: Request, res: Response): z.infer<T> | null {
+export function parseBody<T extends z.ZodType>(
+  schema: T,
+  req: Request,
+  res: Response,
+): z.infer<T> | null {
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid request body', issues: parsed.error.issues });
@@ -43,65 +52,56 @@ function sessionOr404(req: Request, res: Response): Session | null {
   return session;
 }
 
-/** Same shape and client as what is on screen: a refinement replaces it instead of stacking. */
-function isRefinement(session: Session, intent: Intent): boolean {
-  const prev = current(session)?.intent;
-  return !!prev && prev.shape === intent.shape && prev.scope.clientId === intent.scope.clientId;
+/** Opens the stream, superseding any in-flight request for the session. */
+function beginStream(session: Session, res: Response, requestId: string): SseStream {
+  session.inflight?.abort.abort();
+  const abort = new AbortController();
+  session.inflight = { requestId, abort };
+  return openSse(res, abort);
 }
 
-/** Streams intent, spec, one patch per deferred panel, then done. */
+async function runStream(session: Session, stream: SseStream, work: () => Promise<void>) {
+  try {
+    await work();
+  } catch (err) {
+    if (!stream.signal.aborted) {
+      log.error('Compose failed', { error: err instanceof Error ? err.message : String(err) });
+      stream.send({
+        type: 'error',
+        message: 'Could not compose the workspace.',
+        recoverable: true,
+      });
+    }
+  } finally {
+    if (session.inflight?.abort.signal === stream.signal) session.inflight = null;
+    stream.end();
+  }
+}
+
+/** intent -> fetching -> planning -> composing -> spec -> writing -> patch* -> done (Section 11.2). */
 async function streamIntent(
   session: Session,
   stream: SseStream,
   intent: Intent,
   requestId: string,
+  degraded: boolean,
 ) {
-  // M2 runs on the keyword parser and rule-based copy only, so every composition is degraded.
-  const degraded = true;
   stream.send({ type: 'intent', intent });
-  stream.send({ type: 'status', stage: 'fetching' });
-  stream.send({ type: 'status', stage: 'planning' });
-  const { spec, deferred } = await compose(session, intent, {
+  resetPreferencesOnClientChange(session, intent.scope.clientId);
+  const c = await compose(session, intent, {
     degraded,
-    replaceTop: isRefinement(session, intent),
+    signal: stream.signal,
+    onStage: (stage) => stream.send({ type: 'status', stage }),
   });
-  stream.send({ type: 'status', stage: 'composing' });
-  stream.send({ type: 'spec', spec });
+  if (stream.signal.aborted) return; // superseded or disconnected: never push a partial spec
+  commit(session, c, false);
+  stream.send({ type: 'spec', spec: c.spec });
 
-  if (deferred.length) stream.send({ type: 'status', stage: 'writing' });
-  await Promise.all(
-    deferred.map(async (job) => {
-      try {
-        const { props } = await job.run();
-        applyPatch(spec, job.panelId, props, true);
-        stream.send({ type: 'patch', panelId: job.panelId, status: 'ready', props });
-      } catch (err) {
-        log.warn('Deferred panel failed', { panelId: job.panelId, error: String(err) });
-        applyPatch(spec, job.panelId, {}, false);
-        stream.send({ type: 'patch', panelId: job.panelId, status: 'error', props: {} });
-      }
-    }),
+  if (c.deferred.length) stream.send({ type: 'status', stage: 'writing' });
+  await fillDeferred(c.spec, c.deferred, (panelId, ok, props) =>
+    stream.send({ type: 'patch', panelId, status: ok ? 'ready' : 'error', props }),
   );
-  stream.send({ type: 'done', requestId, degraded });
-}
-
-/** Opens the stream, superseding any in-flight request for the session. */
-function beginStream(session: Session, res: Response): SseStream {
-  session.inflight?.abort();
-  const abort = new AbortController();
-  session.inflight = abort;
-  return openSse(res, abort);
-}
-
-async function runStream(stream: SseStream, work: () => Promise<void>) {
-  try {
-    await work();
-  } catch (err) {
-    log.error('Compose failed', { error: err instanceof Error ? err.message : String(err) });
-    stream.send({ type: 'error', message: 'Could not compose the workspace.', recoverable: true });
-  } finally {
-    stream.end();
-  }
+  stream.send({ type: 'done', requestId, degraded: c.spec.degraded });
 }
 
 sessionRouter.post('/session', async (_req, res, next) => {
@@ -129,30 +129,42 @@ sessionRouter.post('/session/:id/compose', async (req, res) => {
   const body = parseBody(ComposeRequest, req, res);
   if (!body) return;
 
-  const stream = beginStream(session, res);
-  await runStream(stream, async () => {
+  const stream = beginStream(session, res, body.requestId);
+  await runStream(session, stream, async () => {
     stream.send({ type: 'status', stage: 'parsing' });
     const ents = await entities();
     const on = current(session)?.intent ?? null;
-    const parsed = keywordIntent(body.text, {
-      clients: ents.clients,
-      current: on ? { shape: on.shape, scope: on.scope } : null,
-      defaultClientId: ents.lowestHealthClientId,
-    });
-    const result = finalizeIntent(parsed, on?.scope ?? null, ents.clients);
-    if (stream.closed) return;
+    const { parsed, source } = await parseIntent(
+      body.text,
+      {
+        clients: ents.clients,
+        projects: ents.projects,
+        current: on,
+        defaultClientId: ents.lowestHealthClientId,
+        today: new Date(),
+      },
+      stream.signal,
+    );
+    if (stream.signal.aborted) return;
+    const degraded = source !== 'llm' && body.text.trim() !== '';
+    const result = finalizeIntent(
+      parsed,
+      on?.scope ?? null,
+      ents.clients,
+      ents.lowestHealthClientId,
+    );
 
     if (result.kind === 'clarify') {
-      session.pendingClarify = result.interpretations;
+      session.pendingClarification = { text: body.text, interpretations: result.interpretations };
       const ghosts: Record<string, GhostLayout> = Object.fromEntries(
         result.interpretations.map((i) => [i.id, ghostLayout(i.shape, MANIFESTS)]),
       );
       stream.send({ type: 'clarify', interpretations: result.interpretations, ghosts });
-      stream.send({ type: 'done', requestId: body.requestId, degraded: true });
+      stream.send({ type: 'done', requestId: body.requestId, degraded });
       return;
     }
-    session.pendingClarify = null;
-    await streamIntent(session, stream, result.intent, body.requestId);
+    session.pendingClarification = null;
+    await streamIntent(session, stream, result.intent, body.requestId, degraded);
   });
 });
 
@@ -161,50 +173,59 @@ sessionRouter.post('/session/:id/resolve', async (req, res) => {
   if (!session) return;
   const body = parseBody(ResolveRequest, req, res);
   if (!body) return;
-  const interpretation = session.pendingClarify?.find((i) => i.id === body.interpretationId);
+  const interpretation = session.pendingClarification?.interpretations.find(
+    (i) => i.id === body.interpretationId,
+  );
   if (!interpretation) {
     res.status(409).json({ error: 'No pending clarification with that interpretation' });
     return;
   }
 
-  const stream = beginStream(session, res);
-  await runStream(stream, async () => {
+  const stream = beginStream(session, res, body.requestId);
+  await runStream(session, stream, async () => {
     const ents = await entities();
-    const intent = intentFrom(interpretation, current(session)?.intent.scope ?? null, ents.clients);
-    session.pendingClarify = null;
-    await streamIntent(session, stream, intent, body.requestId);
+    const intent = intentFrom(
+      interpretation,
+      current(session)?.intent.scope ?? null,
+      ents.clients,
+      ents.lowestHealthClientId,
+    );
+    session.pendingClarification = null;
+    await streamIntent(session, stream, intent, body.requestId, false);
   });
 });
 
 sessionRouter.post('/session/:id/back', (req, res) => {
   const session = sessionOr404(req, res);
   if (!session) return;
-  session.inflight?.abort();
+  session.inflight?.abort.abort();
   if (session.stack.length > 1) session.stack.pop();
-  const body: SpecResponse = { spec: current(session)! };
-  res.json(body);
+  res.json({ spec: current(session)! } satisfies SpecResponse);
 });
 
 sessionRouter.post('/session/:id/home', async (req, res, next) => {
   const session = sessionOr404(req, res);
   if (!session) return;
-  session.inflight?.abort();
+  session.inflight?.abort.abort();
+  session.pinned.clear();
+  session.dismissed.clear();
+  session.pendingClarification = null;
   try {
-    const spec = await composeNow(session, OVERVIEW_INTENT, {
-      degraded: false,
-      replaceTop: isRefinement(session, OVERVIEW_INTENT),
-    });
+    const spec = await composeNow(session, OVERVIEW_INTENT, { degraded: false, replaceTop: false });
     res.json({ spec } satisfies SpecResponse);
   } catch (err) {
     next(err);
   }
 });
 
+/** Recomposes the current intent in place with the stored needs (no LLM planning call). */
 async function recompose(session: Session, res: Response) {
   const on = current(session);
   const intent = on?.intent ?? OVERVIEW_INTENT;
   const spec = await composeNow(session, intent, {
     degraded: on?.degraded ?? false,
+    reuseNeeds: on ? session.baseNeeds.get(on) : undefined,
+    reuseCopyFrom: on ?? undefined,
     replaceTop: true,
   });
   res.json({ spec } satisfies SpecResponse);

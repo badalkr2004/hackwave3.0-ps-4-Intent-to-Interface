@@ -89,7 +89,7 @@ export function keywordIntent(text: string, ctx: KeywordContext): IntentParseRes
     const scope = scopeFor(shape);
     const clientId = scope.clientId === undefined ? ctx.current?.scope.clientId : scope.clientId;
     return {
-      id: shape,
+      id: '',
       label: label(shape, shape === 'overview' ? null : clientName(clientId)),
       shape,
       scope,
@@ -120,5 +120,8 @@ export function keywordIntent(text: string, ctx: KeywordContext): IntentParseRes
   }
 
   const top = interpretations[0]!;
-  return { interpretations, isPivot: ctx.current !== null && top.shape !== ctx.current.shape };
+  return {
+    interpretations: interpretations.map((i, n) => ({ ...i, id: `i${n + 1}` })),
+    isPivot: ctx.current !== null && top.shape !== ctx.current.shape,
+  };
 }

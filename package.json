@@ -12,6 +12,7 @@
     "db:migrate": "bun run --cwd apps/server db:migrate",
     "db:seed": "bun run --cwd apps/server db:seed",
     "db:reset": "bun run --cwd apps/server db:reset",
+    "llm:smoke": "bun run --cwd apps/server llm:smoke",
     "build": "bun run --filter '*' build",
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun run --filter '*' test",

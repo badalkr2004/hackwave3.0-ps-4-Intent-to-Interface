@@ -1,0 +1,42 @@
+{
+  "prepare:acme": {
+    "adjustments": [
+      {
+        "type": "usage_trend",
+        "priority": 0.9,
+        "reason": "Raised because Acme usage fell about 37% after v2.4."
+      },
+      {
+        "type": "open_issues",
+        "priority": 0.9,
+        "reason": "Raised because 2 high-priority export tickets are open."
+      }
+    ],
+    "additions": []
+  },
+  "diagnose:acme": {
+    "adjustments": [
+      {
+        "type": "open_issues",
+        "priority": 0.75,
+        "reason": "Raised because 3 open tickets are tagged export, the feature with the steepest drop."
+      },
+      {
+        "type": "recent_communication",
+        "priority": 0.55,
+        "reason": "Raised because recent emails from Acme about exports are negative."
+      }
+    ],
+    "additions": []
+  },
+  "triage:all": {
+    "adjustments": [
+      {
+        "type": "capacity",
+        "priority": 0.9,
+        "reason": "Raised because Dev Patel is at 160% capacity and owns 2 overdue tasks."
+      }
+    ],
+    "additions": []
+  }
+}

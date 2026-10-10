@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import type { ErrorRequestHandler } from 'express';
 import { log } from './log';
+import { actionsRouter } from './routes/actions';
 import { healthRouter } from './routes/health';
 import { sessionRouter } from './routes/session';
 
@@ -13,6 +14,7 @@ export function createApp(): express.Express {
 
   app.use('/api', healthRouter);
   app.use('/api', sessionRouter);
+  app.use('/api', actionsRouter);
 
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found' });

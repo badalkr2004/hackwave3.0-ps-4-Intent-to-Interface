@@ -1,0 +1,57 @@
+{
+  "i need to prepare tomorrows client meeting with acme": {
+    "interpretations": [
+      {
+        "label": "Prepare for Acme meeting",
+        "shape": "prepare",
+        "scope": { "clientId": "acme" },
+        "confidence": 0.93,
+        "rationale": "Mentions preparing for a client meeting with Acme."
+      }
+    ],
+    "isPivot": false
+  },
+  "wait why did their usage drop": {
+    "interpretations": [
+      {
+        "label": "Investigate usage drop",
+        "shape": "diagnose",
+        "scope": {},
+        "confidence": 0.9,
+        "rationale": "Asks why usage dropped for the client already in focus."
+      }
+    ],
+    "isPivot": true
+  },
+  "show me everything overdue across all projects": {
+    "interpretations": [
+      {
+        "label": "Review all overdue work",
+        "shape": "triage",
+        "scope": { "clientId": null, "projectId": null },
+        "confidence": 0.92,
+        "rationale": "Asks for overdue work across every project."
+      }
+    ],
+    "isPivot": false
+  },
+  "look into acme": {
+    "interpretations": [
+      {
+        "label": "Investigate Acme usage",
+        "shape": "diagnose",
+        "scope": { "clientId": "acme" },
+        "confidence": 0.48,
+        "rationale": "Could mean looking into Acme's recent usage change."
+      },
+      {
+        "label": "Prepare for Acme meeting",
+        "shape": "prepare",
+        "scope": { "clientId": "acme" },
+        "confidence": 0.42,
+        "rationale": "Acme has a business review tomorrow."
+      }
+    ],
+    "isPivot": false
+  }
+}

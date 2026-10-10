@@ -1,4 +1,13 @@
-import { HealthResponse, SessionResponse, SpecResponse, type UISpec } from '@gestalt/shared';
+import {
+  DraftEmailResponse,
+  ExecuteActionResponse,
+  HealthResponse,
+  SessionResponse,
+  SpecResponse,
+  type ActionId,
+  type EmailKind,
+  type UISpec,
+} from '@gestalt/shared';
 
 export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
   const res = await fetch('/api/health', { signal });
@@ -32,3 +41,17 @@ export const setPinned = (id: string, componentId: string, pinned: boolean) =>
   specCall(sessionUrl(id, 'pin'), { componentId, pinned });
 export const dismissPanel = (id: string, componentId: string) =>
   specCall(sessionUrl(id, 'dismiss'), { componentId });
+
+export async function draftEmail(sessionId: string, kind: EmailKind): Promise<DraftEmailResponse> {
+  return DraftEmailResponse.parse(await postJson('/api/actions/draft-email', { sessionId, kind }));
+}
+
+export async function executeAction(
+  sessionId: string,
+  actionId: ActionId,
+  params?: Record<string, string>,
+): Promise<ExecuteActionResponse> {
+  return ExecuteActionResponse.parse(
+    await postJson('/api/actions/execute', { sessionId, actionId, ...(params ? { params } : {}) }),
+  );
+}

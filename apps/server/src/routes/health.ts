@@ -2,23 +2,10 @@ import { Router } from 'express';
 import type { HealthResponse } from '@gestalt/shared';
 import { getDbState } from '../db/state';
 import { env } from '../env';
-
-const PROVIDER_KEYS: Record<string, string | undefined> = {
-  anthropic: env.ANTHROPIC_API_KEY,
-  openai: env.OPENAI_API_KEY,
-  groq: env.GROQ_API_KEY,
-};
-
-function providerConfigured(modelSpec: string): boolean {
-  const provider = modelSpec.split(':')[0] ?? '';
-  return Boolean(PROVIDER_KEYS[provider]);
-}
+import { fallbackMode } from '../llm/models';
 
 export function llmMode(): HealthResponse['llm'] {
-  if (env.FORCE_FALLBACK) return 'fallback';
-  return providerConfigured(env.MODEL_FAST) && providerConfigured(env.MODEL_WRITE)
-    ? 'live'
-    : 'fallback';
+  return fallbackMode() ? 'fallback' : 'live';
 }
 
 export const healthRouter = Router();

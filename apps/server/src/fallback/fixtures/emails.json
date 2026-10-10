@@ -1,0 +1,10 @@
+{
+  "pre_meeting:acme": {
+    "subject": "Ahead of tomorrow's Q4 business review",
+    "body": "Hi Rohan,\n\nAhead of tomorrow's review, I want to be upfront: the export issues since v2.4 (large exports timing out and scheduled exports failing silently) are our top priority, and I know they are blocking your month-end close.\n\nWe also missed the scheduled exports date we committed to at the Q3 review. Tomorrow I will bring a fix date we can stand behind and a plan for the finance onboarding session that is still open.\n\nIf there is anything else you want on the agenda, reply here and I will add it.\n\nBest,\nMaya"
+  },
+  "customer_update:acme": {
+    "subject": "Update on the export issues",
+    "body": "Hi Rohan,\n\nA quick update on the export problems your team has reported since v2.4: we have reproduced the large-export timeouts and the silent scheduled-export failures, and engineering is working on the fix now.\n\nI will send you a firm date as soon as the fix is scheduled, and I will check in with Priya on how finance is handling month-end in the meantime.\n\nBest,\nMaya"
+  }
+}

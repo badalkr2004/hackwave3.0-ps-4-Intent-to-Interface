@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ActionId } from './panels';
 import { ClientRef, ProjectRef, UISpec } from './schemas';
 
 export const DEMO_PROMPTS = [
@@ -36,3 +37,22 @@ export type DismissRequest = z.infer<typeof DismissRequest>;
 
 export const SpecResponse = z.object({ spec: UISpec });
 export type SpecResponse = z.infer<typeof SpecResponse>;
+
+export const EmailKind = z.enum(['pre_meeting', 'customer_update']);
+export type EmailKind = z.infer<typeof EmailKind>;
+
+export const DraftEmailRequest = z.object({ sessionId: z.string().min(1), kind: EmailKind });
+export type DraftEmailRequest = z.infer<typeof DraftEmailRequest>;
+
+export const DraftEmailResponse = z.object({ subject: z.string(), body: z.string() });
+export type DraftEmailResponse = z.infer<typeof DraftEmailResponse>;
+
+export const ExecuteActionRequest = z.object({
+  sessionId: z.string().min(1),
+  actionId: ActionId,
+  params: z.record(z.string(), z.string()).optional(),
+});
+export type ExecuteActionRequest = z.infer<typeof ExecuteActionRequest>;
+
+export const ExecuteActionResponse = z.object({ ok: z.literal(true), message: z.string() });
+export type ExecuteActionResponse = z.infer<typeof ExecuteActionResponse>;

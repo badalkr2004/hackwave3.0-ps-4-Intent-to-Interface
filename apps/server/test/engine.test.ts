@@ -12,6 +12,7 @@ import { createSql, Db } from '../src/db/client';
 import { migrate } from '../src/db/migrate';
 import { seed } from '../src/db/seed';
 import { env } from '../src/env';
+import { fixtureHypotheses, fixtureTalkingPoints } from '../src/fallback/fixtures';
 import { startOfDay } from '../src/lib/dates';
 import { runAuction, type AuctionResult } from '../src/services/auction';
 import { componentData, loadScopeData } from '../src/services/data';
@@ -154,6 +155,16 @@ describe.skipIf(!env.DATABASE_URL)(
         expect(ids.has(e.id), e.id).toBe(true);
       }
       expect(hyp.hypotheses[0]!.evidence.map((e) => e.id)).toContain('rel:v2.4');
+    });
+
+    it('demo copy fixtures cite only ids present in the seeded Acme digest', async () => {
+      const data = await loadScopeData(db, ACME, today);
+      const ids = digestIds(await buildDigest(data.ctx));
+      const cited = [
+        ...fixtureTalkingPoints('acme')!.points.flatMap((p) => p.evidence),
+        ...fixtureHypotheses('acme')!.hypotheses.flatMap((h) => h.evidence),
+      ];
+      expect(cited.filter((id) => !ids.has(id))).toEqual([]);
     });
 
     it('loads entities with aliases and the lowest-health client', async () => {

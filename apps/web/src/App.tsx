@@ -3,6 +3,8 @@ import { CircleAlert, LoaderCircle } from 'lucide-react';
 import type { StatusStage } from '@gestalt/shared';
 import { PanelActionsContext, type PanelActions } from './panels/types';
 import { ClarifyChoices } from './shell/ClarifyChoices';
+import { EmailDialog } from './shell/EmailDialog';
+import { Toast } from './shell/Toast';
 import { Headline } from './shell/Headline';
 import { IntentBar } from './shell/IntentBar';
 import { StackChip } from './shell/StackChip';
@@ -89,13 +91,33 @@ export function App() {
         )}
       </main>
 
-      <footer className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-6 text-xs text-muted">
-        <span>Gestalt</span>
-        {s.degraded && <span>Some content used offline mode</span>}
-        <a href="/gallery" className="text-accent-text underline">
-          Component gallery
-        </a>
+      <footer className="mx-auto flex max-w-[1400px] flex-col gap-2 px-5 pb-6 text-xs text-muted">
+        {s.actionsLog.length > 0 && (
+          <section aria-labelledby="recent-actions-heading">
+            <h2 id="recent-actions-heading" className="font-medium text-text">
+              Recent actions
+            </h2>
+            <ul className="mt-1 flex flex-col gap-0.5">
+              {s.actionsLog
+                .slice(-3)
+                .reverse()
+                .map((a) => (
+                  <li key={a.at}>{a.message}</li>
+                ))}
+            </ul>
+          </section>
+        )}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <span>Gestalt</span>
+          {s.degraded && <span>Some content used offline mode</span>}
+          <a href="/gallery" className="text-accent-text underline">
+            Component gallery
+          </a>
+        </div>
       </footer>
+
+      <EmailDialog email={s.email} onClose={s.closeEmail} />
+      <Toast toast={s.toast} onDone={s.clearToast} />
 
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {s.announcement}
