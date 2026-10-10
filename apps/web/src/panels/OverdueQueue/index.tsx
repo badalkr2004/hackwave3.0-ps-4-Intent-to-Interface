@@ -1,6 +1,6 @@
 import { formatShortDate, overdueLabel } from '../../lib/format';
 import type { PanelViewProps } from '../types';
-import { EmptyState, TaskStatusBadge } from '../ui';
+import { EmptyState, TaskStatusBadge, TruncatedList } from '../ui';
 
 export function OverdueQueue({ props, size }: PanelViewProps<'overdue_queue'>) {
   const tasks = [...props.tasks].sort(
@@ -32,9 +32,13 @@ export function OverdueQueue({ props, size }: PanelViewProps<'overdue_queue'>) {
     return (
       <div className="flex flex-col gap-3">
         {header}
-        <ul className="flex flex-col gap-2">
-          {tasks.slice(0, 6).map((t) => (
-            <li key={t.id} className="flex items-start justify-between gap-2">
+        <TruncatedList
+          items={tasks}
+          limit={6}
+          label="Overdue work"
+          keyOf={(t) => t.id}
+          renderItem={(t) => (
+            <div className="flex items-start justify-between gap-2">
               <span className="min-w-0 text-sm text-text">
                 {t.title}
                 <span className="block text-xs text-muted">
@@ -43,9 +47,9 @@ export function OverdueQueue({ props, size }: PanelViewProps<'overdue_queue'>) {
                 </span>
               </span>
               <TaskStatusBadge status={t.status} />
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+        />
       </div>
     );
   }

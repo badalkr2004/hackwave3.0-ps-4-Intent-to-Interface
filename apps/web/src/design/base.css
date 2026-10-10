@@ -110,6 +110,38 @@
     line-height: var(--leading-normal);
   }
 
+  .panel-size-s {
+    min-height: var(--panel-min-s);
+    max-height: var(--panel-max-s);
+  }
+
+  .panel-size-m {
+    min-height: var(--panel-min-m);
+    max-height: var(--panel-max-m);
+  }
+
+  .panel-size-l {
+    min-height: var(--panel-min-l);
+    max-height: var(--panel-max-l);
+  }
+
+  .panel-scroll {
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 24px), transparent 100%);
+  }
+
+  .panel-scroll:focus,
+  .panel-scroll:focus-within,
+  .panel-scroll[data-at-end='true'] {
+    mask-image: none;
+  }
+
+  .panel-rule-l {
+    border-left: 2px solid var(--accent);
+  }
+
   .sr-only-focusable:not(:focus):not(:focus-within) {
     position: absolute;
     width: 1px;

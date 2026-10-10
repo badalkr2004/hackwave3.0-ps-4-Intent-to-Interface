@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import {
   ArrowDownRight,
   ArrowRight,
@@ -12,6 +12,7 @@ import {
   Meh,
   OctagonAlert,
   Smile,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import type { CommitmentStatus, EvidenceRef, Priority, TaskStatus } from '@gestalt/shared';
@@ -27,8 +28,8 @@ const TONE_CLASSES: Record<Tone, string> = {
   success: 'bg-success-bg text-success',
 };
 
-/** Status chip: always text plus icon plus color. */
-export function Badge({
+/** Shared status chip: fixed height, icon + text, tone variants. */
+export function StatusBadge({
   tone,
   icon: Icon,
   children,
@@ -39,11 +40,88 @@ export function Badge({
 }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center gap-1 rounded-sm px-2 py-0.5 text-xs font-medium whitespace-nowrap ${TONE_CLASSES[tone]}`}
+      className={`inline-flex h-6 shrink-0 items-center gap-1 rounded-sm px-2 text-xs font-medium whitespace-nowrap ${TONE_CLASSES[tone]}`}
     >
       {Icon && <Icon aria-hidden className="size-3.5" />}
       {children}
     </span>
+  );
+}
+
+/** @deprecated Prefer StatusBadge — same API. */
+export const Badge = StatusBadge;
+
+/** Cap visible rows; "+N more" opens a detail dialog with the full list. */
+export function TruncatedList<T>({
+  items,
+  limit,
+  label,
+  renderItem,
+  keyOf,
+}: {
+  items: readonly T[];
+  limit: number;
+  label: string;
+  renderItem: (item: T) => ReactNode;
+  keyOf: (item: T) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const titleId = useId();
+  const shown = items.slice(0, limit);
+  const rest = items.length - shown.length;
+
+  return (
+    <>
+      <ul className="flex flex-col gap-2">
+        {shown.map((item) => (
+          <li key={keyOf(item)}>{renderItem(item)}</li>
+        ))}
+      </ul>
+      {rest > 0 && (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="self-start text-13 font-medium text-accent-text underline-offset-2 hover:underline"
+        >
+          +{rest} more
+        </button>
+      )}
+      {open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={titleId}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-text/30 p-4 sm:items-center"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOpen(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setOpen(false);
+          }}
+        >
+          <div className="flex max-h-[80vh] w-full max-w-lg flex-col sheet">
+            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+              <h2 id={titleId} className="text-md font-medium text-text">
+                {label}
+              </h2>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setOpen(false)}
+                className="inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-text"
+              >
+                <X aria-hidden className="size-4" />
+              </button>
+            </div>
+            <ul className="flex flex-col gap-2 overflow-auto p-4">
+              {items.map((item) => (
+                <li key={keyOf(item)}>{renderItem(item)}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

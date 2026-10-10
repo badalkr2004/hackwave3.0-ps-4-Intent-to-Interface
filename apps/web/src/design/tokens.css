@@ -28,6 +28,13 @@
   --radius-md: 8px;
   --radius-lg: 12px;
 
+  --panel-min-s: 148px;
+  --panel-max-s: 280px;
+  --panel-min-m: 248px;
+  --panel-max-m: 480px;
+  --panel-min-l: 372px;
+  --panel-max-l: 720px;
+
   /* Warm paper + ink. Brand accent is deep indigo; green/amber/red are status only. */
   --bg: #f3efe8;
   --surface: #fbf8f3;

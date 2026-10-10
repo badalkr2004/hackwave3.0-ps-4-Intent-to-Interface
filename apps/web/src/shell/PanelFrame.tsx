@@ -17,9 +17,9 @@ function hashString(s: string): string {
 }
 
 const SIZE_CLASSES: Record<Size, string> = {
-  S: 'min-h-[148px] max-h-[280px]',
-  M: 'min-h-[248px] max-h-[480px]',
-  L: 'min-h-[372px] max-h-[720px]',
+  S: 'panel-size-s',
+  M: 'panel-size-m',
+  L: 'panel-size-l',
 };
 
 export interface PanelFrameProps {
@@ -27,7 +27,6 @@ export interface PanelFrameProps {
   lensOn: boolean;
   receipt?: Receipt | null;
   needs?: Need[];
-  /** @deprecated Prefer receipt + needs; kept for gallery stubs. */
   lensSlot?: ReactNode;
   onTogglePin?: (componentId: string, pinned: boolean) => void;
   onDismiss?: (componentId: string) => void;
@@ -40,23 +39,29 @@ export interface PanelFrameProps {
   };
 }
 
-/** Makes the body a focusable region only when its content actually scrolls. */
 function useScrollable<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   const [scrollable, setScrollable] = useState(false);
+  const [atEnd, setAtEnd] = useState(true);
   const check = () => {
     const el = ref.current;
-    if (el) setScrollable(el.scrollHeight > el.clientHeight + 1);
+    if (!el) return;
+    setScrollable(el.scrollHeight > el.clientHeight + 1);
+    setAtEnd(el.scrollTop + el.clientHeight >= el.scrollHeight - 2);
   };
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
     const ro = new ResizeObserver(() => check());
     ro.observe(el);
-    return () => ro.disconnect();
+    el.addEventListener('scroll', check, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener('scroll', check);
+    };
   }, []);
   useEffect(check);
-  return { ref, scrollable };
+  return { ref, scrollable, atEnd };
 }
 
 function IconButton({
@@ -77,7 +82,7 @@ function IconButton({
       aria-pressed={pressed}
       title={label}
       onClick={onClick}
-      className={`inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-text ${pressed ? 'bg-accent-bg text-accent-text' : ''}`}
+      className={`inline-flex size-8 items-center justify-center rounded-md text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-text ${pressed ? 'bg-accent-bg text-accent-text' : ''}`}
     >
       {children}
     </button>
@@ -99,7 +104,7 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
   ref,
 ) {
   const headingId = panelHeadingId(panel.id);
-  const { ref: bodyRef, scrollable } = useScrollable<HTMLDivElement>();
+  const { ref: bodyRef, scrollable, atEnd } = useScrollable<HTMLDivElement>();
   const reduced = useReducedMotion() ?? false;
   const contentKey = useMemo(
     () => hashString(JSON.stringify([panel.size, panel.status, panel.props])),
@@ -123,20 +128,21 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
       aria-labelledby={headingId}
       aria-busy={panel.status === 'loading' || undefined}
       data-panel-id={panel.id}
-      className={`flex flex-col overflow-hidden sheet ${panel.size === 'L' ? 'border-l-[3px] border-l-accent' : ''} ${SIZE_CLASSES[panel.size]}`}
+      className={`group flex flex-col overflow-hidden sheet ${panel.size === 'L' ? 'panel-rule-l' : ''} ${SIZE_CLASSES[panel.size]}`}
     >
       <header className="flex items-start gap-2 px-4 pt-3">
         <div className="min-w-0 flex-1">
           <h2
             id={headingId}
             tabIndex={-1}
-            className="text-md leading-snug font-medium text-text"
+            title={panel.question}
+            className="line-clamp-2 text-md leading-snug font-medium text-text"
           >
             {panel.question}
           </h2>
           {panel.pinned && <p className="mt-0.5 text-xs text-accent-text">Kept on screen</p>}
         </div>
-        <div className="-mr-2 flex shrink-0 items-center">
+        <div className="-mr-2 flex shrink-0 items-center opacity-100 transition-opacity duration-150 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
           {receipt && !lensOn && (
             <WhyPopover receipt={receipt} needs={needs} panelQuestion={panel.question} />
           )}
@@ -171,13 +177,14 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
         role={scrollable ? 'region' : undefined}
         aria-labelledby={scrollable ? headingId : undefined}
         tabIndex={scrollable ? 0 : undefined}
-        className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-4"
+        data-at-end={atEnd ? 'true' : 'false'}
+        className={`min-h-0 flex-1 px-4 pt-2 pb-4 ${scrollable ? 'panel-scroll' : 'overflow-hidden'}`}
       >
         <motion.div
           key={contentKey}
           initial={{ opacity: 0.4 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: reduced ? 0.12 : 0.2 }}
+          transition={{ duration: reduced ? 0.12 : 0.15 }}
           className="h-full"
         >
           <PanelBody panel={panel} lens={lensOn} />
