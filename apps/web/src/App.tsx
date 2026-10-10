@@ -20,11 +20,11 @@ import { ZoneGrid } from './shell/ZoneGrid';
 import { useWorkspace } from './store/workspace';
 import type { OrgSummary } from './lib/orgApi';
 
-const STAGE_TEXT: Record<StatusStage, string> = {
+const STAGE_COPY: Record<StatusStage, string> = {
   parsing: 'Reading your request…',
   fetching: 'Pulling in the facts…',
   planning: 'Picking what helps…',
-  composing: 'Building your view…',
+  composing: 'Arranging workspace…',
   writing: 'Writing the notes…',
 };
 
@@ -113,47 +113,36 @@ function WorkspaceApp({
           <div className="min-w-0">
             <p className="font-display text-xl tracking-tight text-text sm:text-2xl">Gestalt</p>
             {activeOrg && (
-              <p className="mt-0.5 truncate text-xs text-muted">{activeOrg.name}</p>
+              <p className="mt-0.5 truncate text-13 text-muted">{activeOrg.name}</p>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <AuthMenu activeOrg={activeOrg} onAuthChange={onAuthChange} />
-            <a
-              href="/analytics"
-              className="hidden min-h-11 items-center rounded-md border border-border bg-surface px-3 text-sm text-text hover:bg-surface-2 sm:inline-flex"
-            >
-              Analytics
-            </a>
             <WhyToggle on={s.lensOn} onToggle={s.toggleLens} />
+            <AuthMenu activeOrg={activeOrg} onAuthChange={onAuthChange} />
           </div>
         </header>
 
         <div className="mt-6 flex flex-col gap-3 sm:mt-8">
           <StackChip previousHeadline={previousHeadline} onBack={() => void s.back()} />
-          <Headline intent={s.spec?.intent ?? null} idle={!hasBrief && s.phase !== 'booting'} />
-          {s.spec?.diff && <DiffRibbon key={`${s.spec.id}:${s.spec.version}`} spec={s.spec} />}
-        </div>
-         
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 px-4 py-3 backdrop-blur-sm sm:static sm:z-0 sm:mt-5 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none">
-          <div className="mx-auto max-w-[1280px] sm:mx-0 sm:max-w-3xl">
-            <IntentBar
-              busy={busy}
-              showSuggestions={
-                s.phase === 'idle' && (!s.spec || s.spec.intent.shape === 'overview')
-              }
-              demoPrompts={s.demoPrompts}
-              onSubmit={(text) => void s.submit(text)}
-              onHome={() => void s.home()}
-            />
-            <p className="mt-2 min-h-5 text-xs text-muted" aria-hidden={!busy}>
-              {busy && (
-                <span className="inline-flex items-center gap-2">
-                  <LoaderCircle aria-hidden className="size-3.5 animate-spin" />
-                  {s.stage ? STAGE_TEXT[s.stage] : 'Working…'}
-                </span>
-              )}
-            </p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+            <Headline intent={s.spec?.intent ?? null} idle={!hasBrief && s.phase !== 'booting'} />
+            {s.spec?.diff && (
+              <DiffRibbon key={`${s.spec.id}:${s.spec.version}`} spec={s.spec} />
+            )}
           </div>
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface px-4 py-3 sm:static sm:z-0 sm:mt-5 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
+          <IntentBar
+            busy={busy}
+            stageText={busy ? (s.stage ? STAGE_COPY[s.stage] : 'Arranging workspace…') : null}
+            showSuggestions={
+              s.phase === 'idle' && (!s.spec || s.spec.intent.shape === 'overview')
+            }
+            demoPrompts={s.demoPrompts}
+            onSubmit={(text) => void s.submit(text)}
+            onHome={() => void s.home()}
+          />
         </div>
 
         <main id="workspace" className="mt-6 flex flex-1 flex-col gap-4 sm:mt-8">

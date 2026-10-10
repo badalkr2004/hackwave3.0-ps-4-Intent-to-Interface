@@ -36,6 +36,10 @@
   --spacing-5: var(--space-5);
   --spacing-6: var(--space-6);
 
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
   --font-weight-regular: var(--weight-regular);
   --font-weight-medium: var(--weight-medium);
   --shadow-panel: var(--shadow-1);

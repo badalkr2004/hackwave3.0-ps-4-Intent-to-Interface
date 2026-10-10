@@ -17,6 +17,7 @@ function chipLabel(prompt: string): string {
 
 export interface IntentBarProps {
   busy: boolean;
+  stageText?: string | null;
   demoPrompts: string[];
   showSuggestions?: boolean;
   onSubmit: (text: string) => void;
@@ -27,6 +28,7 @@ const EXTRA_PROMPTS = ['Show me the sales report in a pie chart'] as const;
 
 export function IntentBar({
   busy,
+  stageText,
   demoPrompts,
   showSuggestions = true,
   onSubmit,
@@ -71,53 +73,70 @@ export function IntentBar({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex w-full max-w-3xl flex-col gap-2">
       <form
         role="search"
         aria-label="What you are working on"
         onSubmit={onFormSubmit}
-        className="flex gap-2"
+        className="flex flex-col gap-2 sm:flex-row sm:items-stretch"
       >
-        <label htmlFor={inputId} className="sr-only">
-          What are you working on?
-        </label>
-        <input
-          ref={inputRef}
-          id={inputId}
-          type="text"
-          value={text}
-          maxLength={500}
-          onChange={(e) => {
-            setText(e.target.value);
-            if (error) setError(null);
-            markIntentEdited();
-          }}
-          placeholder="What are you working on?"
-          aria-describedby={error ? `${hintId} ${errorId}` : hintId}
-          aria-invalid={error ? true : undefined}
-          autoComplete="off"
-          className="min-h-11 min-w-0 flex-1 rounded-md border border-border bg-surface px-3 text-md text-text shadow-panel placeholder:text-muted"
-        />
-        <button
-          type="submit"
-          className="inline-flex min-h-11 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-accent"
-        >
-          {busy ? (
-            <LoaderCircle aria-hidden className="size-4 animate-spin" />
-          ) : (
-            <ArrowRight aria-hidden className="size-4" />
+        <div className="relative min-w-0 flex-1">
+          <label htmlFor={inputId} className="sr-only">
+            What are you working on?
+          </label>
+          <input
+            ref={inputRef}
+            id={inputId}
+            type="text"
+            value={text}
+            maxLength={500}
+            disabled={busy}
+            onChange={(e) => {
+              setText(e.target.value);
+              if (error) setError(null);
+              markIntentEdited();
+            }}
+            placeholder={busy ? stageText || 'Arranging workspace…' : 'What are you working on?'}
+            aria-describedby={error ? `${hintId} ${errorId}` : hintId}
+            aria-invalid={error ? true : undefined}
+            autoComplete="off"
+            className="h-14 w-full rounded-lg border border-border bg-surface pr-14 pl-4 text-md text-text shadow-panel transition-colors duration-150 placeholder:text-muted focus-visible:border-focus"
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded-sm border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-muted"
+          >
+            /
+          </span>
+          {busy && (
+            <p className="sr-only" aria-live="polite">
+              {stageText || 'Arranging workspace'}
+            </p>
           )}
-          Show
-        </button>
-        <button
-          type="button"
-          onClick={onHome}
-          className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-text hover:bg-surface-2"
-        >
-          <House aria-hidden className="size-4" />
-          <span className="hidden sm:inline">Overview</span>
-          <span className="sm:hidden">Home</span>
-        </button>
+        </div>
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={busy}
+            className="inline-flex h-14 items-center gap-2 rounded-lg bg-accent px-5 text-sm font-medium text-on-accent transition-opacity duration-150 hover:opacity-95 disabled:opacity-70"
+          >
+            {busy ? (
+              <LoaderCircle aria-hidden className="size-4 animate-spin" />
+            ) : (
+              <ArrowRight aria-hidden className="size-4" />
+            )}
+            {busy ? 'Working' : 'Show'}
+          </button>
+          <button
+            type="button"
+            onClick={onHome}
+            className="inline-flex h-14 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm text-text transition-colors duration-150 hover:bg-surface-2"
+          >
+            <House aria-hidden className="size-4" />
+            <span className="hidden sm:inline">Overview</span>
+            <span className="sm:hidden">Home</span>
+          </button>
+        </div>
       </form>
       <p id={hintId} className="sr-only">
         Press slash to focus this field from anywhere.
@@ -138,7 +157,7 @@ export function IntentBar({
                   setText(p);
                   submit(p);
                 }}
-                className="min-h-8 rounded-md border border-border bg-bg px-2.5 text-xs text-muted hover:border-border-strong hover:text-text"
+                className="min-h-8 rounded-md border border-border bg-bg px-2.5 text-13 text-muted transition-colors duration-150 hover:border-border-strong hover:text-text"
               >
                 {chipLabel(p)}
               </button>

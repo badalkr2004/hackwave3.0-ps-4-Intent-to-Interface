@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ListTree } from 'lucide-react';
 import { MANIFESTS_BY_ID, type UISpec } from '@gestalt/shared';
 
 const AUTO_COLLAPSE_MS = 8000;
@@ -37,7 +37,7 @@ function Section({ heading, items }: { heading: string; items: Row[] }) {
   if (items.length === 0) return null;
   return (
     <section className="flex flex-col gap-1">
-      <h3 className="text-xs font-medium text-muted">{heading}</h3>
+      <h3 className="text-13 font-medium text-muted">{heading}</h3>
       <ul className="flex flex-col gap-1">
         {items.map((r) => (
           <li key={r.id} className="text-sm">
@@ -51,7 +51,7 @@ function Section({ heading, items }: { heading: string; items: Row[] }) {
 }
 
 /**
- * Plain “what changed” disclosure under the brief so nothing shifts in silence.
+ * Plain “what changed” disclosure on the headline row.
  * Remount per composition (key by spec id and version) so it starts collapsed.
  */
 export function DiffRibbon({ spec }: { spec: UISpec }) {
@@ -95,23 +95,29 @@ export function DiffRibbon({ spec }: { spec: UISpec }) {
         aria-expanded={open}
         aria-controls={listId}
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex min-h-8 items-center gap-2 rounded-md border border-border bg-bg px-3 text-xs text-muted hover:border-border-strong hover:text-text"
+        className="inline-flex min-h-8 items-center gap-2 rounded-md border border-border bg-surface px-3 text-13 text-muted hover:border-border-strong hover:text-text"
       >
-        <span>
-          What changed ·{' '}
-          <span className="text-success">{added.length} new</span>
+        <ListTree aria-hidden className="size-3.5" />
+        <span className="tabular">
+          <span className="text-success">{added.length} added</span>
+          {removed.length > 0 && (
+            <>
+              {' · '}
+              <span>{removed.length} aside</span>
+            </>
+          )}
           {' · '}
-          {removed.length} aside · {kept.length} same
+          <span>{kept.length} unchanged</span>
         </span>
         <ChevronDown
           aria-hidden
-          className={`size-3.5 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`size-3.5 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
         />
       </button>
       <div
         id={listId}
         hidden={!open}
-        className="absolute top-full left-0 z-30 mt-2 flex w-[min(560px,calc(100vw-2.5rem))] flex-col gap-3 sheet p-4"
+        className="absolute top-full left-0 z-30 mt-2 flex w-full max-w-xl flex-col gap-3 sheet p-4"
       >
         <Section heading="New here" items={added} />
         <Section heading="Set aside" items={removed} />
