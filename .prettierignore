@@ -1,0 +1,6 @@
+node_modules
+dist
+coverage
+bun.lock
+*.md
+apps/web/src/design/tokens.css
