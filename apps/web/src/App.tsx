@@ -47,7 +47,12 @@ export function App() {
           </div>
         </section>
       </main>
-      <footer className="mx-auto max-w-[1400px] px-5 pb-6 text-xs text-muted">Gestalt</footer>
+      <footer className="mx-auto max-w-[1400px] px-5 pb-6 text-xs text-muted">
+        Gestalt ·{' '}
+        <a href="/gallery" className="text-accent-text underline">
+          Component gallery
+        </a>
+      </footer>
     </>
   );
 }

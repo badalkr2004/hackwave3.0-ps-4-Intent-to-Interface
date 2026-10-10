@@ -4,6 +4,7 @@ import {
   MANIFESTS,
   NEED_QUESTIONS,
   NeedType,
+  PANEL_PROPS,
   SHAPE_TEMPLATES,
   Shape,
   templateNeeds,
@@ -29,6 +30,10 @@ describe('component manifests', () => {
       expect(primary).toBeDefined();
       expect(m.question).toBe(NEED_QUESTIONS[primary!.need]);
     }
+  });
+
+  it('every manifest has a props schema and vice versa', () => {
+    expect(new Set(MANIFESTS.map((m) => m.id))).toEqual(new Set(Object.keys(PANEL_PROPS)));
   });
 
   it('every need type is answered by at least one component', () => {

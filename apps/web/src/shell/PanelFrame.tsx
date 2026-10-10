@@ -1,0 +1,147 @@
+import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
+import { motion, type TargetAndTransition, type Transition } from 'framer-motion';
+import { Pin, PinOff, X } from 'lucide-react';
+import type { Panel, Size } from '@gestalt/shared';
+import { PanelBody } from './PanelBody';
+
+const SIZE_CLASSES: Record<Size, string> = {
+  S: 'min-h-[148px] max-h-[280px]',
+  M: 'min-h-[248px] max-h-[480px]',
+  L: 'min-h-[372px] max-h-[720px]',
+};
+
+export interface PanelFrameProps {
+  panel: Panel;
+  lensOn: boolean;
+  lensSlot?: ReactNode;
+  evidence?: string[];
+  onTogglePin?: (componentId: string, pinned: boolean) => void;
+  onDismiss?: (componentId: string) => void;
+  layoutTransition?: Transition;
+  enter?: {
+    initial: TargetAndTransition;
+    animate: TargetAndTransition;
+    exit: TargetAndTransition;
+    transition: Transition;
+  };
+}
+
+/** Makes the body a focusable region only when its content actually scrolls. */
+function useScrollable<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [scrollable, setScrollable] = useState(false);
+  const check = () => {
+    const el = ref.current;
+    if (el) setScrollable(el.scrollHeight > el.clientHeight + 1);
+  };
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => check());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  useEffect(check);
+  return { ref, scrollable };
+}
+
+function IconButton({
+  label,
+  pressed,
+  onClick,
+  children,
+}: {
+  label: string;
+  pressed?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={pressed}
+      title={label}
+      onClick={onClick}
+      className={`inline-flex size-8 items-center justify-center rounded-md text-muted hover:bg-surface-2 hover:text-text ${pressed ? 'bg-accent-bg text-accent-text' : ''}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function PanelFrame(
+  { panel, lensOn, lensSlot, evidence, onTogglePin, onDismiss, layoutTransition, enter },
+  ref,
+) {
+  const headingId = `panel-${panel.id}-title`;
+  const { ref: bodyRef, scrollable } = useScrollable<HTMLDivElement>();
+
+  return (
+    <motion.section
+      ref={ref}
+      layout
+      layoutId={panel.id}
+      transition={layoutTransition}
+      {...enter}
+      aria-labelledby={headingId}
+      aria-busy={panel.status === 'loading' || undefined}
+      data-panel-id={panel.id}
+      className={`flex flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-panel ${SIZE_CLASSES[panel.size]}`}
+    >
+      <header className="flex items-start gap-2 px-4 pt-3">
+        <div className="min-w-0 flex-1">
+          <h2 id={headingId} tabIndex={-1} className="text-md font-medium text-text">
+            {panel.question}
+          </h2>
+          <p className="mt-0.5 text-xs text-muted">
+            <span className="sr-only">Need: </span>
+            {panel.need.replace(/_/g, ' ')}
+            {panel.pinned && ' · pinned'}
+          </p>
+        </div>
+        <div className="-mr-2 flex shrink-0 items-center">
+          {onTogglePin && (
+            <IconButton
+              label={`${panel.pinned ? 'Unpin' : 'Pin'} ${panel.question}`}
+              pressed={panel.pinned}
+              onClick={() => onTogglePin(panel.componentId, !panel.pinned)}
+            >
+              {panel.pinned ? (
+                <PinOff aria-hidden className="size-4" />
+              ) : (
+                <Pin aria-hidden className="size-4" />
+              )}
+            </IconButton>
+          )}
+          {onDismiss && (
+            <IconButton
+              label={`Dismiss ${panel.question}`}
+              onClick={() => onDismiss(panel.componentId)}
+            >
+              <X aria-hidden className="size-4" />
+            </IconButton>
+          )}
+        </div>
+      </header>
+
+      {lensOn && lensSlot}
+
+      <div
+        ref={bodyRef}
+        role={scrollable ? 'region' : undefined}
+        aria-labelledby={scrollable ? headingId : undefined}
+        tabIndex={scrollable ? 0 : undefined}
+        className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-4"
+      >
+        <PanelBody panel={panel} lens={lensOn} />
+      </div>
+
+      {evidence && evidence.length > 0 && (
+        <footer className="border-t border-border px-4 py-2 text-xs text-muted">
+          {evidence.join(' · ')}
+        </footer>
+      )}
+    </motion.section>
+  );
+});
