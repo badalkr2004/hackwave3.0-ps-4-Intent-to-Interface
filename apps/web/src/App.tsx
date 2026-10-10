@@ -15,7 +15,6 @@ import { Headline } from './shell/Headline';
 import { IntentBar } from './shell/IntentBar';
 import { StackChip } from './shell/StackChip';
 import { WhyDrawer } from './shell/WhyDrawer';
-import { WhyOverlay } from './shell/WhyOverlay';
 import { WhyToggle } from './shell/WhyToggle';
 import { ZoneGrid } from './shell/ZoneGrid';
 import { useWorkspace } from './store/workspace';
@@ -185,12 +184,8 @@ function WorkspaceApp({
                 <ZoneGrid
                   panels={s.spec.panels}
                   lensOn={s.lensOn}
-                  renderLens={(panel) => {
-                    const receipt = s.spec?.receipts.find((r) => r.panelId === panel.id);
-                    return receipt && s.spec ? (
-                      <WhyOverlay receipt={receipt} needs={s.spec.needs} />
-                    ) : null;
-                  }}
+                  receipts={s.spec.receipts}
+                  needs={s.spec.needs}
                   onTogglePin={(id, pinned) => void s.pin(id, pinned)}
                   onDismiss={(id) => void s.dismiss(id)}
                 />

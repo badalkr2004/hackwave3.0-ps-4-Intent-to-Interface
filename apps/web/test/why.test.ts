@@ -5,7 +5,9 @@ import {
   fitLabel,
   groupedExclusions,
   needAdjustment,
+  scoreLine,
   sizeBecause,
+  sizeWord,
 } from '../src/shell/why';
 
 describe('why lens helpers', () => {
@@ -19,6 +21,12 @@ describe('why lens helpers', () => {
     expect(fitLabel(0.9)).toBe('Very useful here');
     expect(fitLabel(0.6)).toBe('Useful here');
     expect(fitLabel(0.2)).toBe('Supporting detail');
+  });
+
+  it('formats compact score lines for the Why strip', () => {
+    expect(sizeWord('L')).toBe('Large');
+    expect(scoreLine(0.87, 'L')).toBe('Score 0.87 · Large');
+    expect(scoreLine(0.5, 'S')).toBe('Score 0.50 · Small');
   });
 
   it('groups exclusions in the spec order and drops empty groups', () => {

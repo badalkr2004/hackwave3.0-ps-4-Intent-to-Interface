@@ -28,6 +28,17 @@ export function sizeBecause(size: Size): string {
   return 'Shown small as supporting detail';
 }
 
+export function sizeWord(size: Size): 'Large' | 'Medium' | 'Small' {
+  if (size === 'L') return 'Large';
+  if (size === 'M') return 'Medium';
+  return 'Small';
+}
+
+/** Compact score + size for Why strip / popover. */
+export function scoreLine(score: number, size: Size): string {
+  return `Score ${score.toFixed(2)} · ${sizeWord(size)}`;
+}
+
 export function fitLabel(score: number): string {
   if (score >= 0.8) return 'Very useful here';
   if (score >= 0.5) return 'Useful here';

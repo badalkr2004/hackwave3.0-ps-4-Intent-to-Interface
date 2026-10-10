@@ -1,14 +1,24 @@
+/** Global Why lens switch — labeled, role=switch. */
 export function WhyToggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"
-      aria-pressed={on}
-      aria-label={on ? 'Hide explanations' : 'Explain this view'}
-      title="Explain this view (?)"
+      role="switch"
+      aria-checked={on}
+      aria-label="Show why"
+      title="Show why (?)"
       onClick={onToggle}
-      className={`inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium ${on ? 'border-accent bg-accent-bg text-accent-text' : 'border-border bg-surface text-text hover:bg-surface-2'}`}
+      className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm text-text hover:bg-surface-2"
     >
-      {on ? 'Hide why' : 'Explain'}
+      <span
+        aria-hidden
+        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors duration-150 ${on ? 'border-accent bg-accent' : 'border-border-strong bg-surface-2'}`}
+      >
+        <span
+          className={`size-3.5 rounded-full bg-surface shadow-panel transition-transform duration-150 ${on ? 'translate-x-4' : 'translate-x-0.5'}`}
+        />
+      </span>
+      <span className="font-medium">{on ? 'Showing why' : 'Show why'}</span>
     </button>
   );
 }

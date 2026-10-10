@@ -744,6 +744,24 @@ const COMPOSITIONS: Record<Shape, { headline: string; summary: string; panels: E
 
 export function fixtureSpec(shape: Shape): UISpec {
   const c = COMPOSITIONS[shape];
+  const panels = c.panels.map(([id, size]) => fixturePanel(shape, id, size));
+  const receipts = panels.map((p, i) => {
+    const m = MANIFESTS_BY_ID[p.componentId]!;
+    const score = Math.max(0.35, 0.95 - i * 0.07);
+    return {
+      panelId: p.id,
+      componentId: p.componentId,
+      need: p.need,
+      alsoServes: [] as const,
+      priority: score,
+      fit: 1,
+      signal: 0.7,
+      score,
+      size: p.size,
+      evidence: [`Answers “${m.question}” for this job.`, 'Facts loaded for the current scope.'],
+      reason: `Answers '${m.question}' (priority ${score.toFixed(2)}).`,
+    };
+  });
   return UISpec.parse({
     id: `fixture-${shape}`,
     version: 1,
@@ -759,8 +777,8 @@ export function fixtureSpec(shape: Shape): UISpec {
       headline: c.headline,
     },
     needs: [],
-    panels: c.panels.map(([id, size]) => fixturePanel(shape, id, size)),
-    receipts: [],
+    panels,
+    receipts,
     excluded: [],
     diff: null,
     degraded: false,

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { AnimatePresence, LayoutGroup, useReducedMotion, type Transition } from 'framer-motion';
-import type { Panel, Zone } from '@gestalt/shared';
+import type { Need, Panel, Receipt, Zone } from '@gestalt/shared';
 import { PanelFrame } from './PanelFrame';
 
 const ZONES: { zone: Zone; area: string; label?: string }[] = [
@@ -15,6 +15,9 @@ const STAGGER_CAP = 8;
 export interface ZoneGridProps {
   panels: Panel[];
   lensOn?: boolean;
+  receipts?: Receipt[];
+  needs?: Need[];
+  /** @deprecated Prefer receipts + needs. */
   renderLens?: (panel: Panel) => ReactNode;
   onTogglePin?: (componentId: string, pinned: boolean) => void;
   onDismiss?: (componentId: string) => void;
@@ -23,6 +26,8 @@ export interface ZoneGridProps {
 export function ZoneGrid({
   panels,
   lensOn = false,
+  receipts = [],
+  needs = [],
   renderLens,
   onTogglePin,
   onDismiss,
@@ -60,18 +65,23 @@ export function ZoneGrid({
             .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
           const children = (
             <AnimatePresence mode="popLayout" initial={false}>
-              {inZone.map((p, i) => (
-                <PanelFrame
-                  key={p.id}
-                  panel={p}
-                  lensOn={lensOn}
-                  lensSlot={renderLens?.(p)}
-                  onTogglePin={onTogglePin}
-                  onDismiss={onDismiss}
-                  layoutTransition={layoutTransition}
-                  enter={enterFor(i)}
-                />
-              ))}
+              {inZone.map((p, i) => {
+                const receipt = receipts.find((r) => r.panelId === p.id) ?? null;
+                return (
+                  <PanelFrame
+                    key={p.id}
+                    panel={p}
+                    lensOn={lensOn}
+                    receipt={receipt}
+                    needs={needs}
+                    lensSlot={renderLens?.(p)}
+                    onTogglePin={onTogglePin}
+                    onDismiss={onDismiss}
+                    layoutTransition={layoutTransition}
+                    enter={enterFor(i)}
+                  />
+                );
+              })}
             </AnimatePresence>
           );
           const className = `${area} flex min-w-0 flex-col content-start gap-4`;

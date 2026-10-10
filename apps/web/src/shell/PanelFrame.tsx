@@ -1,9 +1,10 @@
 import { forwardRef, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { motion, useReducedMotion, type TargetAndTransition, type Transition } from 'framer-motion';
 import { Pin, PinOff, X } from 'lucide-react';
-import type { Panel, Size } from '@gestalt/shared';
+import type { Need, Panel, Receipt, Size } from '@gestalt/shared';
 import { panelHeadingId } from './ids';
 import { PanelBody } from './PanelBody';
+import { WhyOverlay, WhyPopover } from './WhyOverlay';
 
 /** FNV-1a; only needs to change when the content changes. */
 function hashString(s: string): string {
@@ -24,8 +25,10 @@ const SIZE_CLASSES: Record<Size, string> = {
 export interface PanelFrameProps {
   panel: Panel;
   lensOn: boolean;
+  receipt?: Receipt | null;
+  needs?: Need[];
+  /** @deprecated Prefer receipt + needs; kept for gallery stubs. */
   lensSlot?: ReactNode;
-  evidence?: string[];
   onTogglePin?: (componentId: string, pinned: boolean) => void;
   onDismiss?: (componentId: string) => void;
   layoutTransition?: Transition;
@@ -82,7 +85,17 @@ function IconButton({
 }
 
 export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function PanelFrame(
-  { panel, lensOn, lensSlot, evidence, onTogglePin, onDismiss, layoutTransition, enter },
+  {
+    panel,
+    lensOn,
+    receipt,
+    needs = [],
+    lensSlot,
+    onTogglePin,
+    onDismiss,
+    layoutTransition,
+    enter,
+  },
   ref,
 ) {
   const headingId = panelHeadingId(panel.id);
@@ -92,6 +105,13 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
     () => hashString(JSON.stringify([panel.size, panel.status, panel.props])),
     [panel.size, panel.status, panel.props],
   );
+
+  const whyStrip =
+    lensOn && receipt ? (
+      <WhyOverlay receipt={receipt} needs={needs} panelQuestion={panel.question} />
+    ) : lensOn && lensSlot ? (
+      lensSlot
+    ) : null;
 
   return (
     <motion.section
@@ -117,6 +137,9 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
           {panel.pinned && <p className="mt-0.5 text-xs text-accent-text">Kept on screen</p>}
         </div>
         <div className="-mr-2 flex shrink-0 items-center">
+          {receipt && !lensOn && (
+            <WhyPopover receipt={receipt} needs={needs} panelQuestion={panel.question} />
+          )}
           {onTogglePin && (
             <IconButton
               label={`${panel.pinned ? 'Stop keeping' : 'Keep'} ${panel.question}`}
@@ -141,7 +164,7 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
         </div>
       </header>
 
-      {lensOn && lensSlot}
+      {whyStrip}
 
       <div
         ref={bodyRef}
@@ -150,7 +173,6 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
         tabIndex={scrollable ? 0 : undefined}
         className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-4"
       >
-        {/* Kept panels whose content changed crossfade in place; the frame never remounts. */}
         <motion.div
           key={contentKey}
           initial={{ opacity: 0.4 }}
@@ -161,12 +183,6 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
           <PanelBody panel={panel} lens={lensOn} />
         </motion.div>
       </div>
-
-      {evidence && evidence.length > 0 && (
-        <footer className="border-t border-border px-4 py-2 text-xs text-muted">
-          {evidence.join(' · ')}
-        </footer>
-      )}
     </motion.section>
   );
 });

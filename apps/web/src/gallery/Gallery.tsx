@@ -80,6 +80,8 @@ function Compositions() {
       </div>
       <ZoneGrid
         panels={panels}
+        receipts={spec.receipts}
+        needs={spec.needs}
         onTogglePin={(id, on) =>
           setPinned((s) => {
             const next = new Set(s);
