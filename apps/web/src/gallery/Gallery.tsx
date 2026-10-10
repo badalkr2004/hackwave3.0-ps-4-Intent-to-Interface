@@ -39,11 +39,23 @@ function Segmented<T extends string>({
   );
 }
 
+function shapeFromUrl(): Shape {
+  const q = new URLSearchParams(window.location.search).get('shape');
+  return Shape.options.includes(q as Shape) ? (q as Shape) : 'overview';
+}
+
 function Compositions() {
-  const [shape, setShape] = useState<Shape>('overview');
+  const [shape, setShape] = useState<Shape>(shapeFromUrl);
   const [pinned, setPinned] = useState<Set<string>>(new Set());
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const spec = useMemo(() => fixtureSpec(shape), [shape]);
+
+  const selectShape = (next: Shape) => {
+    setShape(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set('shape', next);
+    window.history.replaceState(null, '', url);
+  };
   const panels = spec.panels
     .filter((p) => !dismissed.has(p.id))
     .map((p) => ({ ...p, pinned: pinned.has(p.id) }));
@@ -51,7 +63,7 @@ function Compositions() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <Segmented label="Task shape" options={Shape.options} value={shape} onChange={setShape} />
+        <Segmented label="Task shape" options={Shape.options} value={shape} onChange={selectShape} />
         {dismissed.size > 0 && (
           <button
             type="button"

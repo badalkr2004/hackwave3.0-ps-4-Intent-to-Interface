@@ -8,7 +8,10 @@
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "ui:shots": "node scripts/ui-shots.mjs",
+    "ui:contrast": "node scripts/contrast-check.mjs",
+    "ui:axe": "node scripts/axe-gallery.mjs"
   },
   "dependencies": {
     "@gestalt/shared": "workspace:*",
@@ -22,10 +25,12 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@tailwindcss/vite": "^4.1.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "playwright": "^1.64.0",
     "tailwindcss": "^4.1.0",
     "vite": "^7.1.0",
     "vitest": "^4.0.0"
