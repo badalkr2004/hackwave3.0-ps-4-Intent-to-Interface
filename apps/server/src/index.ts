@@ -1,5 +1,6 @@
 import { env } from './env';
 import { createApp } from './app';
+import { initDatabase } from './db/init';
 import { log } from './log';
 import { llmMode } from './routes/health';
 
@@ -14,5 +15,5 @@ app.listen(env.PORT, () => {
         : 'No API key for the configured model provider(s): running in fallback mode.',
     );
   }
-  if (!env.DATABASE_URL) log.warn('DATABASE_URL is not set: serving fixture data only.');
+  void initDatabase();
 });

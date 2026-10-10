@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import type { HealthResponse } from '@gestalt/shared';
+import { getDbState } from '../db/state';
 import { env } from '../env';
 
 const PROVIDER_KEYS: Record<string, string | undefined> = {
@@ -27,8 +28,7 @@ healthRouter.get('/health', (_req, res) => {
     ok: true,
     llm: llmMode(),
     models: { fast: env.MODEL_FAST, write: env.MODEL_WRITE },
-    // Database wiring lands in the next milestone; until then the server reports fixture mode.
-    db: 'down',
+    db: getDbState(),
   };
   res.json(body);
 });

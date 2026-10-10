@@ -21,6 +21,7 @@ const EnvSchema = z.object({
   DB_SCHEMA: z
     .string()
     .regex(/^[a-z_][a-z0-9_]*$/, 'DB_SCHEMA must be a simple lowercase identifier')
+    .refine((s) => s !== 'public', 'DB_SCHEMA must be a dedicated schema, not "public"')
     .default('gestalt'),
   ALLOW_DB_RESET: flag,
   MODEL_FAST: z.string().default('anthropic:claude-haiku-5-5'),

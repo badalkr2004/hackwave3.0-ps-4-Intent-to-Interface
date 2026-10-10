@@ -8,13 +8,17 @@
     "start": "bun src/index.ts",
     "build": "tsc --noEmit -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "db:migrate": "bun src/db/cli.ts migrate",
+    "db:seed": "bun src/db/cli.ts seed",
+    "db:reset": "bun src/db/cli.ts reset"
   },
   "dependencies": {
     "@gestalt/shared": "workspace:*",
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
     "express": "^5.1.0",
+    "postgres": "^3.4.7",
     "zod": "^4.1.0"
   },
   "devDependencies": {
