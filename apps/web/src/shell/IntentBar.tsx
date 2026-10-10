@@ -1,20 +1,23 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { ArrowRight, House, LoaderCircle } from 'lucide-react';
-import { markIntentEdited } from '../lib/typing';
+import { isTypingTarget, markIntentEdited } from '../lib/typing';
 import { INTENT_INPUT_ID } from './ids';
 
 export interface IntentBarProps {
   busy: boolean;
   demoPrompts: string[];
+  showSuggestions?: boolean;
   onSubmit: (text: string) => void;
   onHome: () => void;
 }
 
-const isTypingTarget = (el: EventTarget | null) =>
-  el instanceof HTMLElement &&
-  (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
-
-export function IntentBar({ busy, demoPrompts, onSubmit, onHome }: IntentBarProps) {
+export function IntentBar({
+  busy,
+  demoPrompts,
+  showSuggestions = true,
+  onSubmit,
+  onHome,
+}: IntentBarProps) {
   const [text, setText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = INTENT_INPUT_ID;
@@ -92,7 +95,7 @@ export function IntentBar({ busy, demoPrompts, onSubmit, onHome }: IntentBarProp
       <p id={hintId} className="sr-only">
         Press slash to focus this field from anywhere.
       </p>
-      {!busy && demoPrompts.length > 0 && (
+      {showSuggestions && !busy && demoPrompts.length > 0 && (
         <ul aria-label="Suggestions" className="flex flex-wrap gap-2">
           {demoPrompts.map((p) => (
             <li key={p}>

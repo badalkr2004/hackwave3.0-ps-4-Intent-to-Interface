@@ -8,3 +8,10 @@ export function markIntentEdited(): void {
 export function intentEditedSince(t: number): boolean {
   return lastEdit > t;
 }
+
+export function isTypingTarget(el: EventTarget | null): boolean {
+  return (
+    el instanceof HTMLElement &&
+    (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName))
+  );
+}

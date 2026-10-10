@@ -2,15 +2,18 @@ import { useEffect, useMemo } from 'react';
 import { CircleAlert, LoaderCircle } from 'lucide-react';
 import type { StatusStage } from '@gestalt/shared';
 import { PanelActionsContext, type PanelActions } from './panels/types';
-import { intentEditedSince } from './lib/typing';
-import { ClarifyChoices } from './shell/ClarifyChoices';
+import { intentEditedSince, isTypingTarget } from './lib/typing';
 import { DiffRibbon } from './shell/DiffRibbon';
+import { GhostPreviews } from './shell/GhostPreviews';
 import { HEADLINE_ID, INTENT_INPUT_ID, panelHeadingId } from './shell/ids';
 import { EmailDialog } from './shell/EmailDialog';
 import { Toast } from './shell/Toast';
 import { Headline } from './shell/Headline';
 import { IntentBar } from './shell/IntentBar';
 import { StackChip } from './shell/StackChip';
+import { WhyDrawer } from './shell/WhyDrawer';
+import { WhyOverlay } from './shell/WhyOverlay';
+import { WhyToggle } from './shell/WhyToggle';
 import { ZoneGrid } from './shell/ZoneGrid';
 import { useWorkspace } from './store/workspace';
 
@@ -44,6 +47,27 @@ export function App() {
     }
   }, [focusRequest]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === '?' && !isTypingTarget(e.target)) {
+        e.preventDefault();
+        s.toggleLens();
+      }
+      if (e.key === 'Escape') {
+        if (s.clarification) {
+          e.preventDefault();
+          s.cancelClarify();
+        } else if (s.lensOn) {
+          e.preventDefault();
+          s.toggleLens();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [s.clarification, s.lensOn, s.toggleLens, s.cancelClarify]);
+
   const actions: PanelActions = useMemo(() => ({ runAction }), [runAction]);
   const busy = s.phase === 'composing';
   const previousHeadline = s.history[s.history.length - 1] ?? null;
@@ -62,12 +86,18 @@ export function App() {
           <Headline intent={s.spec?.intent ?? null} />
           {s.spec?.diff && <DiffRibbon key={`${s.spec.id}:${s.spec.version}`} spec={s.spec} />}
         </div>
-        <IntentBar
-          busy={busy}
-          demoPrompts={s.demoPrompts}
-          onSubmit={(text) => void s.submit(text)}
-          onHome={() => void s.home()}
-        />
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <IntentBar
+              busy={busy}
+              showSuggestions={s.phase === 'idle'}
+              demoPrompts={s.demoPrompts}
+              onSubmit={(text) => void s.submit(text)}
+              onHome={() => void s.home()}
+            />
+          </div>
+          <WhyToggle on={s.lensOn} onToggle={s.toggleLens} />
+        </div>
         <p className="min-h-5 text-xs text-muted" aria-hidden={!busy}>
           {busy && (
             <span className="inline-flex items-center gap-2">
@@ -88,23 +118,40 @@ export function App() {
             {s.error}
           </p>
         )}
-        {s.clarification && (
-          <ClarifyChoices
+        {s.clarification ? (
+          <GhostPreviews
             interpretations={s.clarification.interpretations}
+            ghosts={s.clarification.ghosts}
             onPick={(id) => void s.resolve(id)}
+            onCancel={s.cancelClarify}
           />
-        )}
-        {s.phase === 'booting' ? (
+        ) : s.phase === 'booting' ? (
           <p className="flex items-center gap-2 text-sm text-muted">
             <LoaderCircle aria-hidden className="size-4 animate-spin" /> Loading your workspace…
           </p>
         ) : (
           s.spec && (
-            <ZoneGrid
-              panels={s.spec.panels}
-              onTogglePin={(id, pinned) => void s.pin(id, pinned)}
-              onDismiss={(id) => void s.dismiss(id)}
-            />
+            <>
+              <ZoneGrid
+                panels={s.spec.panels}
+                lensOn={s.lensOn}
+                renderLens={(panel) => {
+                  const receipt = s.spec?.receipts.find((r) => r.panelId === panel.id);
+                  return receipt && s.spec ? (
+                    <WhyOverlay receipt={receipt} needs={s.spec.needs} />
+                  ) : null;
+                }}
+                onTogglePin={(id, pinned) => void s.pin(id, pinned)}
+                onDismiss={(id) => void s.dismiss(id)}
+              />
+              {s.lensOn && (
+                <WhyDrawer
+                  spec={s.spec}
+                  onClose={s.toggleLens}
+                  onBringBack={(item) => void s.bringBack(item)}
+                />
+              )}
+            </>
           )
         )}
       </main>

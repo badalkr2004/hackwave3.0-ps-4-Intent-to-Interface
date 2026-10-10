@@ -69,4 +69,20 @@ describe.skipIf(!env.DATABASE_URL)('session routes', { timeout: 30_000 }, () => 
     expect(back.spec.diff?.removed).toEqual([target]);
     expect(back.spec.panels.some((p) => p.id === target)).toBe(false);
   });
+
+  it('unpin restores a dismissed panel without pinning it', async () => {
+    const session = SessionResponse.parse(await (await post('/session')).json());
+    const id = session.sessionId;
+    const target = session.spec.panels.find((p) => p.componentId !== 'action_bar')!.componentId;
+    await post(`/session/${id}/dismiss`, { componentId: target });
+    const restored = SpecResponse.parse(
+      await (await post(`/session/${id}/pin`, { componentId: target, pinned: false })).json(),
+    );
+    const panel = restored.spec.panels.find((p) => p.id === target);
+    expect(panel).toBeDefined();
+    expect(panel?.pinned).toBe(false);
+    expect(restored.spec.excluded.some((e) => e.componentId === target && e.reason === 'dismissed')).toBe(
+      false,
+    );
+  });
 });

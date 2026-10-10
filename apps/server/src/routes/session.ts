@@ -269,6 +269,8 @@ sessionRouter.post('/session/:id/pin', async (req, res, next) => {
     session.dismissed.delete(body.componentId);
   } else {
     session.pinned.delete(body.componentId);
+    // Unpin of a never-pinned id is how "Bring back" restores a dismissed panel without pinning it.
+    session.dismissed.delete(body.componentId);
   }
   await recompose(session, res, next);
 });

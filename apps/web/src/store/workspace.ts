@@ -3,6 +3,7 @@ import {
   MANIFESTS_BY_ID,
   MAX_STACK_DEPTH,
   type ClientRef,
+  type Exclusion,
   type GhostLayout,
   type Interpretation,
   type ProjectRef,
@@ -14,7 +15,7 @@ import * as api from '../lib/api';
 import { postStream } from '../lib/sse';
 import type { ActionItem } from '../panels/types';
 
-export type Phase = 'booting' | 'idle' | 'composing' | 'error';
+export type Phase = 'booting' | 'idle' | 'clarifying' | 'composing' | 'error';
 
 export interface WorkspaceState {
   phase: Phase;
@@ -34,6 +35,7 @@ export interface WorkspaceState {
   toast: { id: number; message: string } | null;
   email: EmailDraftState | null;
   focusRequest: FocusRequest | null;
+  lensOn: boolean;
   error: string | null;
 
   init: () => Promise<void>;
@@ -46,6 +48,9 @@ export interface WorkspaceState {
   runAction: (action: ActionItem) => Promise<void>;
   closeEmail: () => void;
   clearToast: (id: number) => void;
+  toggleLens: () => void;
+  cancelClarify: () => void;
+  bringBack: (item: Exclusion) => Promise<void>;
 }
 
 export type EmailDraftState =
@@ -134,6 +139,7 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
         break;
       case 'clarify':
         set({
+          phase: 'clarifying',
           clarification: { interpretations: event.interpretations, ghosts: event.ghosts },
           announcement: `Did you mean: ${event.interpretations.map((i) => i.label).join(', or ')}?`,
         });
@@ -154,7 +160,11 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
         break;
       }
       case 'done':
-        set({ phase: 'idle', stage: null, degraded: get().degraded || event.degraded });
+        set({
+          phase: get().clarification ? 'clarifying' : 'idle',
+          stage: null,
+          degraded: get().degraded || event.degraded,
+        });
         break;
       case 'error':
         set({ phase: 'error', stage: null, error: event.message });
@@ -224,6 +234,7 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     toast: null,
     email: null,
     focusRequest: null,
+    lensOn: false,
     error: null,
 
     async init() {
@@ -322,5 +333,13 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
 
     closeEmail: () => set({ email: null }),
     clearToast: (id) => set((s) => (s.toast?.id === id ? { toast: null } : {})),
+    toggleLens: () => set((s) => ({ lensOn: !s.lensOn })),
+    cancelClarify: () => {
+      if (!get().clarification) return;
+      inflight?.abort();
+      set({ clarification: null, phase: 'idle', stage: null, requestId: null });
+      requestFocus({ target: 'intent' });
+    },
+    bringBack: (item) => get().pin(item.componentId, item.reason === 'no_space'),
   };
 });
