@@ -6,6 +6,7 @@ import { intentEditedSince, isTypingTarget } from './lib/typing';
 import { DiffRibbon } from './shell/DiffRibbon';
 import { GhostPreviews } from './shell/GhostPreviews';
 import { HEADLINE_ID, INTENT_INPUT_ID, WHY_DRAWER_HEADING_ID, panelHeadingId } from './shell/ids';
+import { AuthMenu } from './shell/AuthMenu';
 import { DegradedBanner } from './shell/DegradedBanner';
 import { EmailDialog } from './shell/EmailDialog';
 import { Toast } from './shell/Toast';
@@ -102,6 +103,7 @@ export function App() {
               onHome={() => void s.home()}
             />
           </div>
+          <AuthMenu onAuthChange={() => void s.init()} />
           <WhyToggle on={s.lensOn} onToggle={s.toggleLens} />
         </div>
         <p className="min-h-5 text-xs text-muted" aria-hidden={!busy}>

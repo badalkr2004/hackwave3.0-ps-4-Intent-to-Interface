@@ -20,9 +20,22 @@ async function postJson(url: string, body?: unknown): Promise<unknown> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body ?? {}),
+    credentials: 'include',
   });
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return res.json();
+}
+
+export async function fetchMe(): Promise<{
+  authEnabled: boolean;
+  user: { id: string; name: string; email: string; image: string | null } | null;
+}> {
+  const res = await fetch('/api/me', { credentials: 'include' });
+  if (!res.ok) throw new Error(`Session check failed (${res.status})`);
+  return (await res.json()) as {
+    authEnabled: boolean;
+    user: { id: string; name: string; email: string; image: string | null } | null;
+  };
 }
 
 export async function createSession(): Promise<SessionResponse> {

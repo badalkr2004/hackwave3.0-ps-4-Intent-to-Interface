@@ -22,16 +22,24 @@ import { ghostLayout } from '../services/auction';
 import { SupersededError, commit, compose, composeNow, fillDeferred } from '../services/compose';
 import { loadEntities } from '../services/entities';
 import { OVERVIEW_INTENT, finalizeIntent, intentFrom, parseIntent } from '../services/intent';
+import { requestUser } from '../lib/requestUser';
+import { loadPrefs, savePrefs } from '../services/prefs';
 import {
   createSession,
   current,
   getSession,
+  prefsSnapshot,
   release,
   resetPreferencesOnClientChange,
   supersede,
   type Session,
 } from '../session';
 import { openSse, type SseStream } from '../sse';
+
+async function persistPrefs(session: Session): Promise<void> {
+  if (!session.userId) return;
+  await savePrefs(session.userId, prefsSnapshot(session));
+}
 
 export const sessionRouter = Router();
 
@@ -109,6 +117,7 @@ async function streamIntent(
 ) {
   stream.send({ type: 'intent', intent });
   resetPreferencesOnClientChange(session, intent.scope.clientId);
+  await persistPrefs(session);
   const c = await compose(session, intent, {
     degraded,
     signal: stream.signal,
@@ -125,9 +134,15 @@ async function streamIntent(
   stream.send({ type: 'done', requestId, degraded: c.spec.degraded });
 }
 
-sessionRouter.post('/session', async (_req, res, next) => {
+sessionRouter.post('/session', async (req, res, next) => {
   try {
-    const session = createSession();
+    const user = await requestUser(req);
+    const prefs = user ? await loadPrefs(user.id) : null;
+    const session = createSession({
+      userId: user?.id ?? null,
+      pinned: prefs?.pinned,
+      dismissed: prefs?.dismissed,
+    });
     const [ents, spec] = await Promise.all([
       entities(),
       composeNow(session, OVERVIEW_INTENT, { degraded: false, replaceTop: false }),
@@ -236,6 +251,7 @@ sessionRouter.post('/session/:id/home', async (req, res, next) => {
   session.pinned.clear();
   session.dismissed.clear();
   session.pendingClarification = null;
+  await persistPrefs(session);
   await exclusive(session, res, next, (signal) =>
     composeNow(session, OVERVIEW_INTENT, { degraded: false, replaceTop: false, signal }),
   );
@@ -272,6 +288,7 @@ sessionRouter.post('/session/:id/pin', async (req, res, next) => {
     // Unpin of a never-pinned id is how "Bring back" restores a dismissed panel without pinning it.
     session.dismissed.delete(body.componentId);
   }
+  await persistPrefs(session);
   await recompose(session, res, next);
 });
 
@@ -286,5 +303,6 @@ sessionRouter.post('/session/:id/dismiss', async (req, res, next) => {
   }
   session.dismissed.add(body.componentId);
   session.pinned.delete(body.componentId);
+  await persistPrefs(session);
   await recompose(session, res, next);
 });

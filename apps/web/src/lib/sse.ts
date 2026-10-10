@@ -56,6 +56,7 @@ export async function postStream(url: string, body: unknown, opts: StreamOptions
     headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },
     body: JSON.stringify(body),
     signal: opts.signal,
+    credentials: 'include',
   });
   if (!res.ok || !res.body) {
     const detail = await res.text().catch(() => '');

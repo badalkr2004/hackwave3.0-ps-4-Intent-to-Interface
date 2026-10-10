@@ -116,6 +116,9 @@ See `.env.example`. Models are `provider:modelId` (e.g. `groq:openai/gpt-oss-120
 | `MODEL_FAST` / `MODEL_WRITE` | Intent/plan vs copy/email |
 | `FORCE_FALLBACK` | `1` = skip LLM entirely |
 | `ALLOW_DB_RESET` | Must be `1` to drop schema |
+| `BETTER_AUTH_SECRET` | Required to enable sign-in (min 16 chars) |
+| `BETTER_AUTH_URL` | Public app origin (use Vite URL in dev so cookies work via `/api` proxy) |
+| `WEB_ORIGIN` | Allowed CORS origin for credentialed requests |
 
 ---
 
@@ -129,11 +132,21 @@ packages/shared   Zod schemas, constants, need templates, manifests
 
 ---
 
-## Production roadmap (after the hackathon)
+## Auth (Better Auth + Drizzle)
 
-1. **Better Auth** — sessions, OAuth/SSO, org membership  
-2. **Drizzle ORM** — typed queries over the same Neon URL; keep `DB_SCHEMA` isolation  
-3. Persist pins, dismissals, and task history per user  
+Sign-in is **optional**. Without an account the demo works as before. With `BETTER_AUTH_SECRET` set:
+
+1. Boot migrates auth tables into `DB_SCHEMA` (`0002_auth.sql`).
+2. Use **Sign in** / create account in the header (email + password).
+3. Pins and dismissals are stored in `user_workspace_prefs` and restored on the next session.
+
+Drizzle types live in `apps/server/src/db/auth-schema.ts`. Story data still uses the existing `postgres` tagged SQL loaders — the auction path is unchanged.
+
+## Production roadmap (next)
+
+1. OAuth / SSO (Google, Okta) on the same Better Auth instance  
+2. Org membership + RBAC  
+3. Move story queries onto Drizzle gradually  
 4. Wire CRM / Slack / ticketing as fact sources (auction inputs stay normalized facts)
 
 The adaptive engine (intent → needs → auction → morph → Why) stays the product core.

@@ -19,10 +19,13 @@
     "@ai-sdk/anthropic": "^4.0.78",
     "@ai-sdk/groq": "^4.0.59",
     "@ai-sdk/openai": "^4.0.91",
+    "@better-auth/drizzle-adapter": "^1.7.7",
     "@gestalt/shared": "workspace:*",
     "ai": "^7.0.137",
+    "better-auth": "^1.7.7",
     "cors": "^2.8.5",
     "dotenv": "^17.0.0",
+    "drizzle-orm": "^0.45.4",
     "express": "^5.1.0",
     "postgres": "^3.4.7",
     "zod": "^4.1.0"
@@ -31,6 +34,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^22.0.0",
+    "drizzle-kit": "^0.31.11",
     "vitest": "^4.0.0"
   }
 }

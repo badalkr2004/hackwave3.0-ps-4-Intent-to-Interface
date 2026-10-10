@@ -3,6 +3,8 @@ import { MAX_STACK_DEPTH, type Interpretation, type Need, type UISpec } from '@g
 
 export interface Session {
   id: string;
+  /** Signed-in Better Auth user, when present; used to persist pins/dismissals. */
+  userId: string | null;
   /** Compositions, newest last; the last one is on screen. */
   stack: UISpec[];
   pinned: Set<string>;
@@ -20,13 +22,18 @@ export interface Session {
 const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
 const sessions = new Map<string, Session>();
 
-export function createSession(): Session {
+export function createSession(opts?: {
+  userId?: string | null;
+  pinned?: readonly string[];
+  dismissed?: readonly string[];
+}): Session {
   sweep();
   const session: Session = {
     id: randomUUID(),
+    userId: opts?.userId ?? null,
     stack: [],
-    pinned: new Set(),
-    dismissed: new Set(),
+    pinned: new Set(opts?.pinned ?? []),
+    dismissed: new Set(opts?.dismissed ?? []),
     version: 0,
     baseNeeds: new WeakMap(),
     pendingClarification: null,
@@ -35,6 +42,10 @@ export function createSession(): Session {
   };
   sessions.set(session.id, session);
   return session;
+}
+
+export function prefsSnapshot(session: Session): { pinned: string[]; dismissed: string[] } {
+  return { pinned: [...session.pinned], dismissed: [...session.dismissed] };
 }
 
 export function getSession(id: string): Session | null {

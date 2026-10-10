@@ -32,6 +32,10 @@ const EnvSchema = z.object({
   PORT: z.coerce.number().int().positive().default(8787),
   FORCE_FALLBACK: flag,
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  BETTER_AUTH_SECRET: z.string().min(16).optional(),
+  // Public origin the browser uses (Vite in dev) so auth cookies stick on the proxied host.
+  BETTER_AUTH_URL: z.string().url().default('http://localhost:5173'),
+  WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
