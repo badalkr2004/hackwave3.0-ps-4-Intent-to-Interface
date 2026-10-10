@@ -2,6 +2,7 @@ import { useId, useMemo } from 'react';
 import {
   CartesianGrid,
   ComposedChart,
+  Dot,
   Line,
   ReferenceArea,
   ReferenceLine,
@@ -62,6 +63,34 @@ function Sparkline({ series }: { series: Point[] }) {
   );
 }
 
+function EndDot(props: {
+  cx?: number;
+  cy?: number;
+  index?: number;
+  payload?: Point;
+  lastIndex: number;
+  fill: string;
+  labelColor: string;
+}) {
+  const { cx, cy, index, payload, lastIndex, fill, labelColor } = props;
+  if (index !== lastIndex || cx == null || cy == null || !payload) return null;
+  return (
+    <g>
+      <Dot cx={cx} cy={cy} r={4} fill={fill} stroke={fill} />
+      <text
+        x={cx}
+        y={cy - 10}
+        textAnchor="end"
+        fill={labelColor}
+        fontSize={12}
+        className="tabular"
+      >
+        {formatNumber(payload.value)}
+      </text>
+    </g>
+  );
+}
+
 export function UsageTrend({ props, size }: PanelViewProps<'usage_trend'>) {
   const colors = useTokenColors();
   const patternId = `hatch-${useId().replace(/:/g, '')}`;
@@ -69,27 +98,34 @@ export function UsageTrend({ props, size }: PanelViewProps<'usage_trend'>) {
   const { series } = props;
   const firstDate = series[0]?.date;
   const lastDate = series[series.length - 1]?.date;
+  const values = series.map((p) => p.value);
+  const yMin = values.length ? Math.min(...values) : 0;
+  const yMax = values.length ? Math.max(...values) : 1;
+  const pad = Math.max(1, (yMax - yMin) * 0.08);
 
-  if (!firstDate || !lastDate) return <EmptyState message="No usage data for this scope." />;
+  if (!firstDate || !lastDate) {
+    return <EmptyState message="No usage data for this scope yet. Try another client or range." />;
+  }
 
   const releases = props.releases.filter((r) => r.date >= firstDate && r.date <= lastDate);
   const tick = { fill: colors.muted, fontSize: 12 };
+  const lastIndex = series.length - 1;
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <Delta pct={props.changePct} className="text-xl" />
+        <Delta pct={props.changePct} className="text-xl tabular" />
         <p className="text-sm text-muted">{props.summary}</p>
       </div>
 
       {size === 'S' ? (
         <Sparkline series={series} />
       ) : (
-        <div aria-hidden className="w-full">
+        <div className="w-full">
           <ResponsiveContainer width="100%" height={size === 'L' ? 260 : 170}>
             <ComposedChart
               data={series}
-              margin={{ top: 16, right: 8, bottom: 0, left: -12 }}
+              margin={{ top: 20, right: 12, bottom: 4, left: 0 }}
               accessibilityLayer={false}
             >
               <defs>
@@ -112,15 +148,21 @@ export function UsageTrend({ props, size }: PanelViewProps<'usage_trend'>) {
                   />
                 </pattern>
               </defs>
-              <CartesianGrid vertical={false} stroke={colors.border} />
+              <CartesianGrid vertical={false} stroke={colors.grid} />
               <XAxis
                 dataKey="date"
                 tickFormatter={formatShortDate}
                 tick={tick}
                 stroke={colors.border}
-                minTickGap={40}
+                minTickGap={36}
               />
-              <YAxis tick={tick} stroke={colors.border} width={44} />
+              <YAxis
+                tick={tick}
+                stroke={colors.border}
+                width={44}
+                domain={[Math.floor(yMin - pad), Math.ceil(yMax + pad)]}
+                tickFormatter={(v: number) => formatNumber(v)}
+              />
               {props.anomalyStart && (
                 <ReferenceArea
                   x1={props.anomalyStart}
@@ -143,7 +185,7 @@ export function UsageTrend({ props, size }: PanelViewProps<'usage_trend'>) {
                   label={{ value: r.version, position: 'top', fill: colors.text, fontSize: 12 }}
                 />
               ))}
-              {size === 'L' && (
+              {(size === 'L' || size === 'M') && (
                 <Line
                   dataKey="baseline"
                   name="Baseline"
@@ -158,17 +200,25 @@ export function UsageTrend({ props, size }: PanelViewProps<'usage_trend'>) {
                 name="Daily active users"
                 stroke={colors.accent}
                 strokeWidth={2}
-                dot={false}
                 isAnimationActive={false}
+                dot={(dotProps) => (
+                  <EndDot
+                    {...dotProps}
+                    lastIndex={lastIndex}
+                    fill={colors.accent}
+                    labelColor={colors.text}
+                  />
+                )}
+                activeDot={{ r: 4, fill: colors.accent }}
               />
               <Tooltip
                 labelFormatter={(d) => formatShortDate(String(d))}
-                formatter={(v) => formatNumber(Number(v))}
+                formatter={(v) => [formatNumber(Number(v)), 'Daily active users']}
                 contentStyle={{
                   background: colors.surface,
                   borderColor: colors.border,
                   color: colors.text,
-                  fontSize: 12,
+                  fontSize: 13,
                 }}
               />
             </ComposedChart>
@@ -178,8 +228,8 @@ export function UsageTrend({ props, size }: PanelViewProps<'usage_trend'>) {
 
       {size === 'L' && (
         <p className="text-xs text-muted">
-          Dashed grey line: weekday-adjusted baseline. Dashed vertical lines: releases. Hatched
-          area: the drop.
+          Dashed line: weekday-adjusted baseline. Vertical dashes: releases. Hatched area: the
+          drop.
         </p>
       )}
 

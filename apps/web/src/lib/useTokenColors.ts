@@ -7,6 +7,8 @@ export interface TokenColors {
   border: string;
   text: string;
   surface: string;
+  /** ~4% opacity grid lines for charts. */
+  grid: string;
 }
 
 function read(): TokenColors {
@@ -19,6 +21,7 @@ function read(): TokenColors {
     border: v('--border'),
     text: v('--text'),
     surface: v('--surface'),
+    grid: v('--grid-faint') || 'rgba(26, 23, 20, 0.04)',
   };
 }
 

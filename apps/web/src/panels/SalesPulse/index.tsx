@@ -3,6 +3,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  LabelList,
   Line,
   LineChart,
   Pie,
@@ -95,18 +96,25 @@ export function SalesPulse({ props, size }: PanelViewProps<'sales_pulse'>) {
       )}
 
       {chart === 'bars' && barData.length > 0 && featured && (
-        <div className="w-full" style={{ height: chartH || 140 }}>
+        <div className={`w-full ${size === 'L' ? 'h-52' : 'h-40'}`}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData}>
-              <CartesianGrid stroke={colors.border} strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" tick={{ fill: colors.muted, fontSize: 11 }} />
+            <BarChart data={barData} margin={{ top: 16, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke={colors.grid} vertical={false} />
+              <XAxis dataKey="name" tick={{ fill: colors.muted, fontSize: 12 }} />
               <YAxis
-                tick={{ fill: colors.muted, fontSize: 11 }}
+                tick={{ fill: colors.muted, fontSize: 12 }}
                 tickFormatter={(v: number) => formatCurrency(v)}
                 width={48}
               />
               <Tooltip formatter={(v) => formatCurrency(Number(v))} />
-              <Bar dataKey="amount" name="Pipeline" fill={colors.accent} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="amount" name="Pipeline" fill={colors.accent} radius={[4, 4, 0, 0]}>
+                <LabelList
+                  dataKey="amount"
+                  position="top"
+                  formatter={(v) => formatCurrency(Number(v))}
+                  style={{ fill: colors.muted, fontSize: 11 }}
+                />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
