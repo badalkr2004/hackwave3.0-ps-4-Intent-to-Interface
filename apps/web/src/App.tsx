@@ -55,6 +55,11 @@ function WorkspaceApp({
     void init();
   }, [init]);
 
+  useEffect(() => {
+    const headline = s.spec?.intent.headline;
+    document.title = headline ? `${headline} · Gestalt` : 'Gestalt';
+  }, [s.spec?.intent.headline]);
+
   const focusRequest = s.focusRequest;
   useEffect(() => {
     if (!focusRequest) return;

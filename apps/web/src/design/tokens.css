@@ -60,6 +60,8 @@
 
   --shadow-1: 0 1px 0 rgba(26, 23, 20, 0.06);
   --grid-faint: rgba(26, 23, 20, 0.04);
+  --selection-bg: #c9d2ea;
+  --selection-text: #1a1714;
 }
 
 /* Prefer light. Dark only when the user explicitly asks the OS for it. */
@@ -85,5 +87,32 @@
     --focus: #8fa4d9;
     --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.35);
     --grid-faint: rgba(240, 235, 227, 0.06);
+    --selection-bg: #3a4a6e;
+    --selection-text: #f0ebe3;
   }
+}
+
+:root[data-theme='dark'] {
+  --bg: #141210;
+  --surface: #1c1916;
+  --surface-2: #2a2621;
+  --border: #7a7166;
+  --border-strong: #a89f92;
+  --text: #f0ebe3;
+  --text-muted: #b8aea0;
+  --accent: #8fa4d9;
+  --accent-bg: #243048;
+  --accent-text: #c5d2f0;
+  --on-accent: #12151c;
+  --danger: #f0a09a;
+  --danger-bg: #3a1f1d;
+  --warn: #e0c07a;
+  --warn-bg: #3a2f14;
+  --success: #7fcea0;
+  --success-bg: #17301f;
+  --focus: #8fa4d9;
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.35);
+  --grid-faint: rgba(240, 235, 227, 0.06);
+  --selection-bg: #3a4a6e;
+  --selection-text: #f0ebe3;
 }

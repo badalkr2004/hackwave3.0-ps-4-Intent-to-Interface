@@ -24,9 +24,7 @@ const SHAPES = ['overview', 'prepare', 'diagnose', 'triage'];
 async function setTheme(page, theme) {
   await page.emulateMedia({ colorScheme: theme });
   await page.evaluate((t) => {
-    const root = document.documentElement;
-    if (t === 'dark') root.removeAttribute('data-theme');
-    else root.setAttribute('data-theme', 'light');
+    document.documentElement.setAttribute('data-theme', t);
   }, theme);
 }
 
