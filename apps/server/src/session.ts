@@ -43,6 +43,22 @@ export function getSession(id: string): Session | null {
   return s;
 }
 
+/**
+ * Starts a request that changes what is on screen, aborting the previous one. Every such
+ * request (compose, resolve, back, home, pin, dismiss) goes through here so a slow request can
+ * never commit over a newer one.
+ */
+export function supersede(session: Session, requestId: string = randomUUID()): AbortController {
+  session.inflight?.abort.abort();
+  const abort = new AbortController();
+  session.inflight = { requestId, abort };
+  return abort;
+}
+
+export function release(session: Session, abort: AbortController): void {
+  if (session.inflight?.abort === abort) session.inflight = null;
+}
+
 export function current(session: Session): UISpec | null {
   return session.stack[session.stack.length - 1] ?? null;
 }

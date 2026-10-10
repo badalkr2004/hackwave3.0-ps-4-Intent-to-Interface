@@ -194,6 +194,14 @@ export async function composeNow(
 ): Promise<UISpec> {
   const c = await compose(session, intent, opts);
   await fillDeferred(c.spec, c.deferred);
+  if (opts.signal?.aborted) throw new SupersededError();
   commit(session, c, opts.replaceTop);
   return c.spec;
+}
+
+/** A newer request replaced this one before it could commit. */
+export class SupersededError extends Error {
+  constructor() {
+    super('Superseded by a newer request');
+  }
 }

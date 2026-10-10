@@ -77,7 +77,7 @@ export function ReleaseStrip({ props, size }: PanelViewProps<'release_strip'>) {
         })}
       </ol>
       {selected && (
-        <div className="rounded-md bg-surface-2 p-3 text-sm" aria-live="polite">
+        <div className="rounded-md bg-surface-2 p-3 text-sm">
           <p className="flex flex-wrap items-center gap-2 font-medium text-text">
             {selected.version}
             <span className="text-xs font-normal text-muted">

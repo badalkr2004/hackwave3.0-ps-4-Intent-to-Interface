@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { ArrowRight, House, LoaderCircle } from 'lucide-react';
+import { markIntentEdited } from '../lib/typing';
+import { INTENT_INPUT_ID } from './ids';
 
 export interface IntentBarProps {
   busy: boolean;
@@ -15,7 +17,7 @@ const isTypingTarget = (el: EventTarget | null) =>
 export function IntentBar({ busy, demoPrompts, onSubmit, onHome }: IntentBarProps) {
   const [text, setText] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
-  const inputId = useId();
+  const inputId = INTENT_INPUT_ID;
   const hintId = useId();
 
   useEffect(() => {
@@ -57,7 +59,10 @@ export function IntentBar({ busy, demoPrompts, onSubmit, onHome }: IntentBarProp
           type="text"
           value={text}
           maxLength={500}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            markIntentEdited();
+          }}
           placeholder="What are you working on?"
           aria-describedby={hintId}
           autoComplete="off"

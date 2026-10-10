@@ -1,8 +1,19 @@
-import { forwardRef, useEffect, useRef, useState, type ReactNode } from 'react';
-import { motion, type TargetAndTransition, type Transition } from 'framer-motion';
+import { forwardRef, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { motion, useReducedMotion, type TargetAndTransition, type Transition } from 'framer-motion';
 import { Pin, PinOff, X } from 'lucide-react';
 import type { Panel, Size } from '@gestalt/shared';
+import { panelHeadingId } from './ids';
 import { PanelBody } from './PanelBody';
+
+/** FNV-1a; only needs to change when the content changes. */
+function hashString(s: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
+}
 
 const SIZE_CLASSES: Record<Size, string> = {
   S: 'min-h-[148px] max-h-[280px]',
@@ -74,8 +85,13 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
   { panel, lensOn, lensSlot, evidence, onTogglePin, onDismiss, layoutTransition, enter },
   ref,
 ) {
-  const headingId = `panel-${panel.id}-title`;
+  const headingId = panelHeadingId(panel.id);
   const { ref: bodyRef, scrollable } = useScrollable<HTMLDivElement>();
+  const reduced = useReducedMotion() ?? false;
+  const contentKey = useMemo(
+    () => hashString(JSON.stringify([panel.size, panel.status, panel.props])),
+    [panel.size, panel.status, panel.props],
+  );
 
   return (
     <motion.section
@@ -134,7 +150,16 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
         tabIndex={scrollable ? 0 : undefined}
         className="min-h-0 flex-1 overflow-auto px-4 pt-2 pb-4"
       >
-        <PanelBody panel={panel} lens={lensOn} />
+        {/* Kept panels whose content changed crossfade in place; the frame never remounts. */}
+        <motion.div
+          key={contentKey}
+          initial={{ opacity: 0.4 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: reduced ? 0.12 : 0.2 }}
+          className="h-full"
+        >
+          <PanelBody panel={panel} lens={lensOn} />
+        </motion.div>
       </div>
 
       {evidence && evidence.length > 0 && (

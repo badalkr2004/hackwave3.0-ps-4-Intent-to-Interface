@@ -7,24 +7,28 @@ import {
   MANIFESTS,
   PinRequest,
   ResolveRequest,
+  computeDiff,
   isComponentId,
   type GhostLayout,
   type Intent,
   type SessionResponse,
   type SpecResponse,
+  type UISpec,
 } from '@gestalt/shared';
 import { getDb } from '../db/client';
 import { getDbState } from '../db/state';
 import { log } from '../log';
 import { ghostLayout } from '../services/auction';
-import { commit, compose, composeNow, fillDeferred } from '../services/compose';
+import { SupersededError, commit, compose, composeNow, fillDeferred } from '../services/compose';
 import { loadEntities } from '../services/entities';
 import { OVERVIEW_INTENT, finalizeIntent, intentFrom, parseIntent } from '../services/intent';
 import {
   createSession,
   current,
   getSession,
+  release,
   resetPreferencesOnClientChange,
+  supersede,
   type Session,
 } from '../session';
 import { openSse, type SseStream } from '../sse';
@@ -52,12 +56,29 @@ function sessionOr404(req: Request, res: Response): Session | null {
   return session;
 }
 
-/** Opens the stream, superseding any in-flight request for the session. */
+/** Opens the stream, superseding any in-flight request for the session (Section 9). */
 function beginStream(session: Session, res: Response, requestId: string): SseStream {
-  session.inflight?.abort.abort();
-  const abort = new AbortController();
-  session.inflight = { requestId, abort };
-  return openSse(res, abort);
+  return openSse(res, supersede(session, requestId));
+}
+
+/** Runs a non-streaming recomposition; answers 409 instead of committing if superseded. */
+async function exclusive(
+  session: Session,
+  res: Response,
+  next: (err: unknown) => void,
+  work: (signal: AbortSignal) => Promise<UISpec>,
+) {
+  const abort = supersede(session);
+  try {
+    const spec = await work(abort.signal);
+    res.json({ spec } satisfies SpecResponse);
+  } catch (err) {
+    if (err instanceof SupersededError || abort.signal.aborted) {
+      res.status(409).json({ error: 'Superseded' });
+    } else next(err);
+  } finally {
+    release(session, abort);
+  }
 }
 
 async function runStream(session: Session, stream: SseStream, work: () => Promise<void>) {
@@ -198,37 +219,40 @@ sessionRouter.post('/session/:id/resolve', async (req, res) => {
 sessionRouter.post('/session/:id/back', (req, res) => {
   const session = sessionOr404(req, res);
   if (!session) return;
-  session.inflight?.abort.abort();
+  release(session, supersede(session));
+  const shown = current(session);
   if (session.stack.length > 1) session.stack.pop();
-  res.json({ spec: current(session)! } satisfies SpecResponse);
+  const restored = current(session)!;
+  // The stored diff describes how that composition first arrived; Back needs the diff from the
+  // composition being left. The stored spec itself stays untouched.
+  res.json({
+    spec: { ...restored, diff: shown === restored ? null : computeDiff(shown, restored) },
+  } satisfies SpecResponse);
 });
 
 sessionRouter.post('/session/:id/home', async (req, res, next) => {
   const session = sessionOr404(req, res);
   if (!session) return;
-  session.inflight?.abort.abort();
   session.pinned.clear();
   session.dismissed.clear();
   session.pendingClarification = null;
-  try {
-    const spec = await composeNow(session, OVERVIEW_INTENT, { degraded: false, replaceTop: false });
-    res.json({ spec } satisfies SpecResponse);
-  } catch (err) {
-    next(err);
-  }
+  await exclusive(session, res, next, (signal) =>
+    composeNow(session, OVERVIEW_INTENT, { degraded: false, replaceTop: false, signal }),
+  );
 });
 
 /** Recomposes the current intent in place with the stored needs (no LLM planning call). */
-async function recompose(session: Session, res: Response) {
-  const on = current(session);
-  const intent = on?.intent ?? OVERVIEW_INTENT;
-  const spec = await composeNow(session, intent, {
-    degraded: on?.degraded ?? false,
-    reuseNeeds: on ? session.baseNeeds.get(on) : undefined,
-    reuseCopyFrom: on ?? undefined,
-    replaceTop: true,
+function recompose(session: Session, res: Response, next: (err: unknown) => void) {
+  return exclusive(session, res, next, (signal) => {
+    const on = current(session);
+    return composeNow(session, on?.intent ?? OVERVIEW_INTENT, {
+      degraded: on?.degraded ?? false,
+      reuseNeeds: on ? session.baseNeeds.get(on) : undefined,
+      reuseCopyFrom: on ?? undefined,
+      replaceTop: true,
+      signal,
+    });
   });
-  res.json({ spec } satisfies SpecResponse);
 }
 
 sessionRouter.post('/session/:id/pin', async (req, res, next) => {
@@ -246,11 +270,7 @@ sessionRouter.post('/session/:id/pin', async (req, res, next) => {
   } else {
     session.pinned.delete(body.componentId);
   }
-  try {
-    await recompose(session, res);
-  } catch (err) {
-    next(err);
-  }
+  await recompose(session, res, next);
 });
 
 sessionRouter.post('/session/:id/dismiss', async (req, res, next) => {
@@ -264,9 +284,5 @@ sessionRouter.post('/session/:id/dismiss', async (req, res, next) => {
   }
   session.dismissed.add(body.componentId);
   session.pinned.delete(body.componentId);
-  try {
-    await recompose(session, res);
-  } catch (err) {
-    next(err);
-  }
+  await recompose(session, res, next);
 });

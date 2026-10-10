@@ -33,6 +33,7 @@ export interface WorkspaceState {
   actionsLog: { at: number; message: string }[];
   toast: { id: number; message: string } | null;
   email: EmailDraftState | null;
+  focusRequest: FocusRequest | null;
   error: string | null;
 
   init: () => Promise<void>;
@@ -52,6 +53,28 @@ export type EmailDraftState =
   | { status: 'ready'; title: string; subject: string; body: string }
   | { status: 'error'; title: string; error: string };
 
+/**
+ * Where focus should go after the next render (Section 14.4). `since` is when the triggering
+ * request started; typing in the intent bar after that keeps focus there.
+ */
+export type FocusTarget =
+  { target: 'headline' } | { target: 'panel'; panelId: string } | { target: 'intent' };
+export type FocusRequest = FocusTarget & { seq: number; since: number };
+
+const ZONE_ORDER = { left: 0, center: 1, right: 2 } as const;
+
+/** Panel ids in DOM reading order: left rail, center, right rail. */
+function readingOrder(spec: UISpec | null): string[] {
+  if (!spec) return [];
+  return [...spec.panels]
+    .sort(
+      (a, b) =>
+        ZONE_ORDER[a.zone] - ZONE_ORDER[b.zone] || a.order - b.order || a.id.localeCompare(b.id),
+    )
+    .map((p) => p.id);
+}
+
+let focusSeq = 0;
 let inflight: AbortController | null = null;
 let requestSeq = 0;
 
@@ -97,6 +120,11 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     });
   };
 
+  const requestFocus = (t: FocusTarget, since = performance.now()) =>
+    set({ focusRequest: { ...t, seq: ++focusSeq, since } });
+
+  let streamStartedAt = 0;
+
   const onEvent = (event: SseEvent) => {
     switch (event.type) {
       case 'status':
@@ -112,6 +140,7 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
         break;
       case 'spec':
         showSpec(event.spec);
+        requestFocus({ target: 'headline' }, streamStartedAt);
         break;
       case 'patch': {
         const spec = get().spec;
@@ -140,6 +169,7 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     const ctrl = new AbortController();
     inflight = ctrl;
     const requestId = nextRequestId();
+    streamStartedAt = performance.now();
     set({ phase: 'composing', stage: null, requestId, error: null });
     try {
       await postStream(
@@ -155,7 +185,7 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     }
   };
 
-  /** Runs a non-streaming session call, superseding any in-flight stream. */
+  /** Runs a non-streaming session call; a newer request (stream or call) supersedes it. */
   const call = async (
     fn: (sessionId: string) => Promise<UISpec>,
     after?: (spec: UISpec) => void,
@@ -163,14 +193,17 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     const sessionId = get().sessionId;
     if (!sessionId) return;
     inflight?.abort();
-    set({ requestId: null });
+    const requestId = nextRequestId();
+    set({ requestId });
+    const isCurrent = () => get().requestId === requestId;
     try {
       const spec = await fn(sessionId);
+      if (!isCurrent()) return;
       set({ phase: 'idle', stage: null, error: null });
       if (after) after(spec);
       else showSpec(spec);
     } catch (err) {
-      fail(err);
+      if (isCurrent()) fail(err);
     }
   };
 
@@ -190,6 +223,7 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     actionsLog: [],
     toast: null,
     email: null,
+    focusRequest: null,
     error: null,
 
     async init() {
@@ -214,26 +248,41 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     resolve: (interpretationId) => stream('resolve', { interpretationId }),
 
     back: () =>
-      call(api.goBack, (spec) =>
+      call(api.goBack, (spec) => {
         set((s) => ({
           spec,
           history: s.history.slice(0, -1),
           clarification: null,
           degraded: spec.degraded,
           announcement: `Back to ${spec.intent.headline}.`,
-        })),
-      ),
-    home: () => call(api.goHome),
+        }));
+        requestFocus({ target: 'headline' });
+      }),
+    home: () =>
+      call(api.goHome, (spec) => {
+        showSpec(spec);
+        requestFocus({ target: 'headline' });
+      }),
     pin: (componentId, pinned) =>
       call(
         (id) => api.setPinned(id, componentId, pinned),
         (spec) => showSpec(spec, 'replace'),
       ),
-    dismiss: (componentId) =>
-      call(
+    dismiss: (componentId) => {
+      const before = readingOrder(get().spec);
+      return call(
         (id) => api.dismissPanel(id, componentId),
-        (spec) => showSpec(spec, 'replace'),
-      ),
+        (spec) => {
+          showSpec(spec, 'replace');
+          const present = new Set(spec.panels.map((p) => p.id));
+          const i = before.indexOf(componentId);
+          const next = [...before.slice(i + 1), ...before.slice(0, Math.max(i, 0)).reverse()].find(
+            (id) => present.has(id),
+          );
+          requestFocus(next ? { target: 'panel', panelId: next } : { target: 'intent' });
+        },
+      );
+    },
 
     async runAction(action) {
       const sessionId = get().sessionId;

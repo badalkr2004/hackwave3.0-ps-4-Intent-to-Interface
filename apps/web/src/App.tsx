@@ -2,7 +2,10 @@ import { useEffect, useMemo } from 'react';
 import { CircleAlert, LoaderCircle } from 'lucide-react';
 import type { StatusStage } from '@gestalt/shared';
 import { PanelActionsContext, type PanelActions } from './panels/types';
+import { intentEditedSince } from './lib/typing';
 import { ClarifyChoices } from './shell/ClarifyChoices';
+import { DiffRibbon } from './shell/DiffRibbon';
+import { HEADLINE_ID, INTENT_INPUT_ID, panelHeadingId } from './shell/ids';
 import { EmailDialog } from './shell/EmailDialog';
 import { Toast } from './shell/Toast';
 import { Headline } from './shell/Headline';
@@ -27,6 +30,20 @@ export function App() {
     void init();
   }, [init]);
 
+  const focusRequest = s.focusRequest;
+  useEffect(() => {
+    if (!focusRequest) return;
+    const input = document.getElementById(INTENT_INPUT_ID);
+    if (focusRequest.target === 'headline') {
+      if (document.activeElement === input && intentEditedSince(focusRequest.since)) return;
+      document.getElementById(HEADLINE_ID)?.focus();
+    } else if (focusRequest.target === 'panel') {
+      (document.getElementById(panelHeadingId(focusRequest.panelId)) ?? input)?.focus();
+    } else {
+      input?.focus();
+    }
+  }, [focusRequest]);
+
   const actions: PanelActions = useMemo(() => ({ runAction }), [runAction]);
   const busy = s.phase === 'composing';
   const previousHeadline = s.history[s.history.length - 1] ?? null;
@@ -43,6 +60,7 @@ export function App() {
         <div className="flex flex-col gap-2">
           <StackChip previousHeadline={previousHeadline} onBack={() => void s.back()} />
           <Headline intent={s.spec?.intent ?? null} />
+          {s.spec?.diff && <DiffRibbon key={`${s.spec.id}:${s.spec.version}`} spec={s.spec} />}
         </div>
         <IntentBar
           busy={busy}
