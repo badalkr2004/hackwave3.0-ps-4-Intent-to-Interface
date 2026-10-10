@@ -29,7 +29,7 @@ export function Headline({
       <h1
         id={HEADLINE_ID}
         tabIndex={-1}
-        className="mt-1 grid font-display text-2xl leading-tight text-text sm:text-[2.125rem]"
+        className="mt-1 grid font-display text-2xl text-text"
       >
         <AnimatePresence initial={false}>
           <motion.span key={headline} {...swap} className="col-start-1 row-start-1">

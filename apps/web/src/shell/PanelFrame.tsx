@@ -130,7 +130,7 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
           <h2
             id={headingId}
             tabIndex={-1}
-            className="font-display text-md leading-snug font-medium text-text"
+            className="text-md leading-snug font-medium text-text"
           >
             {panel.question}
           </h2>

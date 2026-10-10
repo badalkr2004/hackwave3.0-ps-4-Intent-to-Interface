@@ -1,18 +1,22 @@
 /* The only file allowed to contain raw color values. Everything else references these tokens. */
 :root {
-  /* Literata for titles, Figtree for UI — deliberate, not a default AI stack. */
-  --font-display: 'Literata', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
-  --font-sans: 'Figtree', 'Segoe UI', Candara, sans-serif;
+  /* Newsreader for the page title; Instrument Sans for UI; mono only for ids. */
+  --font-display: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-sans: 'Instrument Sans', 'Segoe UI', Candara, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
 
   --text-xs: 12px;
+  --text-13: 13px;
   --text-sm: 14px;
   --text-md: 16px;
   --text-lg: 19px;
   --text-xl: 24px;
-  --text-2xl: 34px;
+  --text-2xl: 38px;
   --weight-regular: 400;
-  --weight-medium: 560;
+  --weight-medium: 500;
+  --leading-tight: 1.25;
+  --leading-snug: 1.375;
+  --leading-normal: 1.5;
 
   --space-1: 4px;
   --space-2: 8px;

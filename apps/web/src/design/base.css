@@ -1,4 +1,9 @@
 @import 'tailwindcss';
+@import '@fontsource/newsreader/400.css';
+@import '@fontsource/newsreader/500.css';
+@import '@fontsource/instrument-sans/400.css';
+@import '@fontsource/instrument-sans/500.css';
+@import '@fontsource/ibm-plex-mono/400.css';
 @import './tokens.css';
 
 @theme inline {
@@ -36,10 +41,13 @@
   --shadow-panel: var(--shadow-1);
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
 @theme {
   --text-md: 16px;
+  --text-2xl: 38px;
+  --text-13: 13px;
 }
 
 @layer base {
@@ -67,18 +75,40 @@
     outline-offset: 2px;
   }
 
-  h1,
-  h2,
-  h3 {
+  h1 {
     font-family: var(--font-display);
     font-weight: var(--weight-medium);
     letter-spacing: -0.02em;
+    line-height: var(--leading-tight);
+    text-wrap: balance;
+  }
+
+  h2,
+  h3 {
+    font-family: var(--font-sans);
+    font-weight: var(--weight-medium);
+    letter-spacing: -0.01em;
+    line-height: var(--leading-snug);
+    text-wrap: balance;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
   }
 }
 
 @layer utilities {
   .font-display {
     font-family: var(--font-display);
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .text-13 {
+    font-size: var(--text-13);
+    line-height: var(--leading-normal);
   }
 
   .sr-only-focusable:not(:focus):not(:focus-within) {
