@@ -81,8 +81,8 @@ describe.skipIf(!env.DATABASE_URL)('session routes', { timeout: 30_000 }, () => 
     const panel = restored.spec.panels.find((p) => p.id === target);
     expect(panel).toBeDefined();
     expect(panel?.pinned).toBe(false);
-    expect(restored.spec.excluded.some((e) => e.componentId === target && e.reason === 'dismissed')).toBe(
-      false,
-    );
+    expect(
+      restored.spec.excluded.some((e) => e.componentId === target && e.reason === 'dismissed'),
+    ).toBe(false);
   });
 });

@@ -6,9 +6,7 @@ export function WhyOverlay({ receipt, needs }: { receipt: Receipt; needs: Need[]
   const adjustment = needAdjustment(needs, receipt.need);
   return (
     <div className="mx-4 mt-2 rounded-sm bg-accent-bg px-3 py-2 text-xs text-accent-text">
-      <p>
-        Answers: {NEED_QUESTIONS[receipt.need]}
-      </p>
+      <p>Answers: {NEED_QUESTIONS[receipt.need]}</p>
       <p className="mt-1 flex items-center gap-2">
         <span className="sr-only">Score {receipt.score.toFixed(2)}. </span>
         <span aria-hidden className="relative h-1.5 w-16 overflow-hidden rounded-full bg-surface">

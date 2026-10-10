@@ -333,13 +333,25 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
 
     closeEmail: () => set({ email: null }),
     clearToast: (id) => set((s) => (s.toast?.id === id ? { toast: null } : {})),
-    toggleLens: () => set((s) => ({ lensOn: !s.lensOn })),
+    toggleLens: () =>
+      set((s) => ({
+        lensOn: !s.lensOn,
+        announcement: s.lensOn ? 'Why lens off' : 'Why lens on. Scores and left-out panels shown.',
+      })),
     cancelClarify: () => {
       if (!get().clarification) return;
       inflight?.abort();
       set({ clarification: null, phase: 'idle', stage: null, requestId: null });
       requestFocus({ target: 'intent' });
     },
-    bringBack: (item) => get().pin(item.componentId, item.reason === 'no_space'),
+    // Dismissed: unpin clears the dismissal. No-space: pin forces inclusion (Section 12.5).
+    bringBack: (item) =>
+      call(
+        (id) => api.setPinned(id, item.componentId, item.reason === 'no_space'),
+        (spec) => {
+          showSpec(spec, 'replace');
+          requestFocus({ target: 'panel', panelId: item.componentId });
+        },
+      ),
   };
 });

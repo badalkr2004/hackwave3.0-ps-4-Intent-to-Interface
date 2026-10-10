@@ -52,9 +52,17 @@ export function GhostPreviews({
       onCancel();
       return;
     }
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft' && e.key !== 'ArrowDown' && e.key !== 'ArrowUp')
+    if (
+      e.key !== 'ArrowRight' &&
+      e.key !== 'ArrowLeft' &&
+      e.key !== 'ArrowDown' &&
+      e.key !== 'ArrowUp'
+    ) {
       return;
-    const buttons = [...(listRef.current?.querySelectorAll<HTMLButtonElement>('button[data-ghost]') ?? [])];
+    }
+    const buttons = [
+      ...(listRef.current?.querySelectorAll<HTMLButtonElement>('button[data-ghost]') ?? []),
+    ];
     const i = buttons.findIndex((b) => b === document.activeElement);
     if (i < 0) return;
     e.preventDefault();
@@ -67,7 +75,9 @@ export function GhostPreviews({
       <h2 id={headingId} className="text-md font-medium text-text">
         Which did you mean?
       </h2>
-      <p className="mt-1 text-sm text-muted">Choose a reading. Escape returns to the current workspace.</p>
+      <p className="mt-1 text-sm text-muted">
+        Choose a reading. Escape returns to the current workspace.
+      </p>
       <div ref={listRef} className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {interpretations.map((i) => (
           <button

@@ -5,7 +5,7 @@ import { PanelActionsContext, type PanelActions } from './panels/types';
 import { intentEditedSince, isTypingTarget } from './lib/typing';
 import { DiffRibbon } from './shell/DiffRibbon';
 import { GhostPreviews } from './shell/GhostPreviews';
-import { HEADLINE_ID, INTENT_INPUT_ID, panelHeadingId } from './shell/ids';
+import { HEADLINE_ID, INTENT_INPUT_ID, WHY_DRAWER_HEADING_ID, panelHeadingId } from './shell/ids';
 import { EmailDialog } from './shell/EmailDialog';
 import { Toast } from './shell/Toast';
 import { Headline } from './shell/Headline';
@@ -27,7 +27,7 @@ const STAGE_TEXT: Record<StatusStage, string> = {
 
 export function App() {
   const s = useWorkspace();
-  const { init, runAction } = s;
+  const { init, runAction, toggleLens, cancelClarify } = s;
 
   useEffect(() => {
     void init();
@@ -47,26 +47,31 @@ export function App() {
     }
   }, [focusRequest]);
 
+  // Focus the Left-out drawer only when the lens turns on, not on every recomposition.
+  useEffect(() => {
+    if (s.lensOn) document.getElementById(WHY_DRAWER_HEADING_ID)?.focus();
+  }, [s.lensOn]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === '?' && !isTypingTarget(e.target)) {
         e.preventDefault();
-        s.toggleLens();
+        toggleLens();
       }
       if (e.key === 'Escape') {
         if (s.clarification) {
           e.preventDefault();
-          s.cancelClarify();
+          cancelClarify();
         } else if (s.lensOn) {
           e.preventDefault();
-          s.toggleLens();
+          toggleLens();
         }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [s.clarification, s.lensOn, s.toggleLens, s.cancelClarify]);
+  }, [s.clarification, s.lensOn, toggleLens, cancelClarify]);
 
   const actions: PanelActions = useMemo(() => ({ runAction }), [runAction]);
   const busy = s.phase === 'composing';

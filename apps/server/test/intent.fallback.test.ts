@@ -1,8 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { DEMO_PROMPTS, type ClientRef, type Scope } from '@gestalt/shared';
+import { fixtureIntent } from '../src/fallback/fixtures';
 import { keywordIntent, type KeywordContext } from '../src/fallback/keywordIntent';
 import { aliasesFor } from '../src/services/entities';
-import { describeIntent, finalizeIntent, mergeScope } from '../src/services/intent';
+import {
+  describeIntent,
+  finalizeIntent,
+  mergeScope,
+  postProcessIntent,
+} from '../src/services/intent';
 
 const CLIENTS: ClientRef[] = ['Acme Corp', 'Globex', 'Initech', 'Umbrella Labs'].map((name) => ({
   id: name.split(' ')[0]!.toLowerCase(),
@@ -73,6 +79,19 @@ describe('keyword intent fallback (Section 10.7)', () => {
     expect(
       keywordIntent('why did acme usage drop last week', ctx()).interpretations[0]!.scope.timeRange,
     ).toBe('7d');
+  });
+});
+
+describe('demo fixture intents', () => {
+  it('has a multi-reading fixture for look into Acme that clarifies', () => {
+    const fixture = fixtureIntent(DEMO_PROMPTS[3]!);
+    expect(fixture?.interpretations).toHaveLength(2);
+    const parsed = postProcessIntent(fixture!, {
+      clients: CLIENTS,
+      projects: [],
+    });
+    expect(parsed).not.toBeNull();
+    expect(finalizeIntent(parsed!, null, CLIENTS).kind).toBe('clarify');
   });
 });
 

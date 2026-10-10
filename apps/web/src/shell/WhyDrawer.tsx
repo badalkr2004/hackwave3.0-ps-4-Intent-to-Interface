@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import type { Exclusion, Need, UISpec } from '@gestalt/shared';
+import { WHY_DRAWER_HEADING_ID } from './ids';
 import { groupedExclusions, NEED_SOURCE_LABEL } from './why';
 
 export function WhyDrawer({
@@ -12,15 +13,17 @@ export function WhyDrawer({
   onBringBack: (item: Exclusion) => void;
 }) {
   const groups = groupedExclusions(spec.excluded);
-  const needs = [...spec.needs].sort((a, b) => b.priority - a.priority || a.type.localeCompare(b.type));
+  const needs = [...spec.needs].sort(
+    (a, b) => b.priority - a.priority || a.type.localeCompare(b.type),
+  );
 
   return (
     <aside
-      aria-labelledby="why-drawer-heading"
+      aria-labelledby={WHY_DRAWER_HEADING_ID}
       className="flex flex-col gap-5 rounded-lg border border-border bg-surface p-4 shadow-panel"
     >
       <div className="flex items-start justify-between gap-2">
-        <h2 id="why-drawer-heading" className="text-md font-medium text-text">
+        <h2 id={WHY_DRAWER_HEADING_ID} tabIndex={-1} className="text-md font-medium text-text">
           Why this layout
         </h2>
         <button
@@ -43,10 +46,15 @@ export function WhyDrawer({
           <div className="mt-2 flex flex-col gap-3">
             {groups.map((g) => (
               <div key={g.reason}>
-                <h4 className="text-xs font-medium tracking-wide text-muted uppercase">{g.heading}</h4>
+                <h4 className="text-xs font-medium tracking-wide text-muted uppercase">
+                  {g.heading}
+                </h4>
                 <ul className="mt-1 flex flex-col gap-1">
                   {g.items.map((item) => (
-                    <li key={item.componentId} className="flex items-start justify-between gap-3 text-sm">
+                    <li
+                      key={item.componentId}
+                      className="flex items-start justify-between gap-3 text-sm"
+                    >
                       <span>
                         <span className="font-medium text-text">{item.title}</span>
                         <span className="text-muted">: {item.detail}</span>
@@ -55,7 +63,7 @@ export function WhyDrawer({
                         <button
                           type="button"
                           onClick={() => onBringBack(item)}
-                          className="shrink-0 rounded-md border border-border px-2 py-1 text-xs text-text hover:bg-surface-2"
+                          className="min-h-8 shrink-0 rounded-md border border-border px-2 py-1 text-xs text-text hover:bg-surface-2"
                         >
                           Bring back
                         </button>

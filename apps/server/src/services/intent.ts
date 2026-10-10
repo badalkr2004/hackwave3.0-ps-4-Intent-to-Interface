@@ -160,6 +160,15 @@ export async function parseIntent(
   ctx: ParseContext,
   signal?: AbortSignal,
 ): Promise<{ parsed: IntentParseResult; source: IntentSource }> {
+  // SPEC-NOTE: multi-reading fixtures for exact demo prompts (e.g. "look into Acme") win over the
+  // LLM so the ghost-preview step stays deterministic. Spec order is LLM → fixture; single-reading
+  // fixtures still sit behind the LLM.
+  const fixture = fixtureIntent(text);
+  const fromFixture = fixture ? postProcessIntent(fixture, ctx) : null;
+  if (fromFixture && fromFixture.interpretations.length > 1) {
+    return { parsed: fromFixture, source: 'fixture' };
+  }
+
   if (!fallbackMode() && text.trim()) {
     const res = await callStructured({
       stage: 'intent',
@@ -179,8 +188,6 @@ export async function parseIntent(
       error: res.ok ? 'no usable interpretations' : res.error,
     });
   }
-  const fixture = fixtureIntent(text);
-  const fromFixture = fixture ? postProcessIntent(fixture, ctx) : null;
   if (fromFixture) return { parsed: fromFixture, source: 'fixture' };
   return {
     parsed: keywordIntent(text, {
