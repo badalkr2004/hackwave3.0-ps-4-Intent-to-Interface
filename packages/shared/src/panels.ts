@@ -112,6 +112,8 @@ export const OpenIssuesProps = z.object({
   ),
   totalOpen: z.number(),
   highCount: z.number(),
+  /** Share of open tickets updated in the last 7 days (0..1). */
+  recentShare: z.number(),
 });
 
 export const UsageTrendProps = z.object({

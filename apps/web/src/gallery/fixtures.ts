@@ -223,6 +223,7 @@ export const SAMPLE_PROPS: { [K in ComponentId]: PanelProps<K> } = {
   open_issues: {
     totalOpen: 4,
     highCount: 2,
+    recentShare: 0.75,
     tickets: [
       {
         id: 'T-1',
@@ -585,7 +586,7 @@ export const EMPTY_PROPS: { [K in ComponentId]: PanelProps<K> } = {
   client_snapshot: SAMPLE_PROPS.client_snapshot,
   last_meeting_recap: { ...SAMPLE_PROPS.last_meeting_recap, commitments: [] },
   comms_timeline: { items: [], recentSentiment: null },
-  open_issues: { tickets: [], totalOpen: 0, highCount: 0 },
+  open_issues: { tickets: [], totalOpen: 0, highCount: 0, recentShare: 0 },
   usage_trend: {
     scopeLabel: 'Acme Corp',
     series: [],

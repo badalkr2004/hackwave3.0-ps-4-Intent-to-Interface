@@ -1,92 +1,105 @@
-import { useEffect, useState } from 'react';
-import { CircleAlert, CircleCheck, LoaderCircle } from 'lucide-react';
-import type { HealthResponse } from '@gestalt/shared';
-import { fetchHealth } from './lib/api';
+import { useEffect, useMemo } from 'react';
+import { CircleAlert, LoaderCircle } from 'lucide-react';
+import type { StatusStage } from '@gestalt/shared';
+import { PanelActionsContext, type PanelActions } from './panels/types';
+import { ClarifyChoices } from './shell/ClarifyChoices';
+import { Headline } from './shell/Headline';
+import { IntentBar } from './shell/IntentBar';
+import { StackChip } from './shell/StackChip';
+import { ZoneGrid } from './shell/ZoneGrid';
+import { useWorkspace } from './store/workspace';
 
-type HealthState =
-  { kind: 'loading' } | { kind: 'ok'; health: HealthResponse } | { kind: 'error'; message: string };
+const STAGE_TEXT: Record<StatusStage, string> = {
+  parsing: 'Understanding your request…',
+  fetching: 'Gathering data…',
+  planning: 'Deciding what matters…',
+  composing: 'Arranging the workspace…',
+  writing: 'Writing the details…',
+};
 
 export function App() {
-  const [health, setHealth] = useState<HealthState>({ kind: 'loading' });
+  const s = useWorkspace();
+  const { init, runAction } = s;
 
   useEffect(() => {
-    const ctrl = new AbortController();
-    fetchHealth(ctrl.signal)
-      .then((h) => setHealth({ kind: 'ok', health: h }))
-      .catch((err: unknown) => {
-        if (ctrl.signal.aborted) return;
-        setHealth({ kind: 'error', message: err instanceof Error ? err.message : 'Unknown error' });
-      });
-    return () => ctrl.abort();
-  }, []);
+    void init();
+  }, [init]);
+
+  const actions: PanelActions = useMemo(() => ({ runAction }), [runAction]);
+  const busy = s.phase === 'composing';
+  const previousHeadline = s.history[s.history.length - 1] ?? null;
 
   return (
-    <>
+    <PanelActionsContext.Provider value={actions}>
       <a
         href="#workspace"
-        className="sr-only-focusable fixed left-4 top-4 z-50 rounded-md bg-surface px-4 py-2 text-sm text-text shadow-panel"
+        className="sr-only-focusable fixed top-4 left-4 z-50 rounded-md bg-surface px-4 py-2 text-sm text-text shadow-panel"
       >
         Skip to workspace
       </a>
-      <header className="mx-auto max-w-[1400px] px-5 pb-4 pt-6">
-        <h1 tabIndex={-1} className="text-2xl text-text">
-          Overview
-        </h1>
-        <p className="mt-1 text-sm text-muted">Here is your portfolio at a glance.</p>
+      <header className="mx-auto flex max-w-[1400px] flex-col gap-4 px-5 pt-6 pb-4">
+        <div className="flex flex-col gap-2">
+          <StackChip previousHeadline={previousHeadline} onBack={() => void s.back()} />
+          <Headline intent={s.spec?.intent ?? null} />
+        </div>
+        <IntentBar
+          busy={busy}
+          demoPrompts={s.demoPrompts}
+          onSubmit={(text) => void s.submit(text)}
+          onHome={() => void s.home()}
+        />
+        <p className="min-h-5 text-xs text-muted" aria-hidden={!busy}>
+          {busy && (
+            <span className="inline-flex items-center gap-2">
+              <LoaderCircle aria-hidden className="size-3.5 animate-spin" />
+              {s.stage ? STAGE_TEXT[s.stage] : 'Working…'}
+            </span>
+          )}
+        </p>
       </header>
-      <main id="workspace" className="mx-auto max-w-[1400px] px-5 pb-6">
-        <section
-          aria-labelledby="bootstrap-heading"
-          className="rounded-lg border border-border bg-surface p-4 shadow-panel"
-        >
-          <h2 id="bootstrap-heading" className="text-md text-text">
-            Is the workspace engine connected?
-          </h2>
-          <div className="mt-3 text-sm">
-            <HealthStatus state={health} />
-          </div>
-        </section>
+
+      <main id="workspace" className="mx-auto flex max-w-[1400px] flex-col gap-4 px-5 pb-6">
+        {s.error && (
+          <p
+            role="alert"
+            className="flex items-center gap-2 rounded-md bg-danger-bg p-3 text-sm text-danger"
+          >
+            <CircleAlert aria-hidden className="size-4 shrink-0" />
+            {s.error}
+          </p>
+        )}
+        {s.clarification && (
+          <ClarifyChoices
+            interpretations={s.clarification.interpretations}
+            onPick={(id) => void s.resolve(id)}
+          />
+        )}
+        {s.phase === 'booting' ? (
+          <p className="flex items-center gap-2 text-sm text-muted">
+            <LoaderCircle aria-hidden className="size-4 animate-spin" /> Loading your workspace…
+          </p>
+        ) : (
+          s.spec && (
+            <ZoneGrid
+              panels={s.spec.panels}
+              onTogglePin={(id, pinned) => void s.pin(id, pinned)}
+              onDismiss={(id) => void s.dismiss(id)}
+            />
+          )
+        )}
       </main>
-      <footer className="mx-auto max-w-[1400px] px-5 pb-6 text-xs text-muted">
-        Gestalt ·{' '}
+
+      <footer className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-6 text-xs text-muted">
+        <span>Gestalt</span>
+        {s.degraded && <span>Some content used offline mode</span>}
         <a href="/gallery" className="text-accent-text underline">
           Component gallery
         </a>
       </footer>
-    </>
-  );
-}
 
-function HealthStatus({ state }: { state: HealthState }) {
-  if (state.kind === 'loading') {
-    return (
-      <p className="flex items-center gap-2 text-muted">
-        <LoaderCircle aria-hidden className="size-4 animate-spin" /> Checking server…
-      </p>
-    );
-  }
-  if (state.kind === 'error') {
-    return (
-      <p role="alert" className="flex items-center gap-2 rounded-sm bg-danger-bg p-2 text-danger">
-        <CircleAlert aria-hidden className="size-4" /> Server unreachable: {state.message}
-      </p>
-    );
-  }
-  const { health } = state;
-  return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-      <dt className="text-muted">Server</dt>
-      <dd className="flex items-center gap-2 text-success">
-        <CircleCheck aria-hidden className="size-4" /> Connected
-      </dd>
-      <dt className="text-muted">LLM</dt>
-      <dd>{health.llm === 'live' ? 'Live' : 'Offline mode (fixtures)'}</dd>
-      <dt className="text-muted">Models</dt>
-      <dd className="font-mono text-xs">
-        {health.models.fast} · {health.models.write}
-      </dd>
-      <dt className="text-muted">Database</dt>
-      <dd>{health.db === 'up' ? 'Up' : 'Down (fixture data)'}</dd>
-    </dl>
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {s.announcement}
+      </div>
+    </PanelActionsContext.Provider>
   );
 }
