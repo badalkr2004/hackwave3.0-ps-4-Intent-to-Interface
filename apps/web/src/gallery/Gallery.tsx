@@ -156,7 +156,7 @@ export function Gallery() {
       >
         Skip to gallery
       </a>
-      <header className="mx-auto flex max-w-[1400px] flex-wrap items-end justify-between gap-4 px-5 pt-6 pb-4">
+      <header className="content-shell mx-auto flex w-full flex-wrap items-end justify-between gap-4 px-5 pt-6 pb-4">
         <div>
           <h1 className="text-2xl font-medium text-text">Component gallery</h1>
           <p className="text-sm text-muted">
@@ -170,10 +170,10 @@ export function Gallery() {
           onChange={setView}
         />
       </header>
-      <main id="gallery" className="mx-auto max-w-[1400px] px-5 pb-10">
+      <main id="gallery" className="content-shell mx-auto w-full px-5 pb-10">
         {view === 'compositions' ? <Compositions /> : <Components />}
       </main>
-      <footer className="mx-auto max-w-[1400px] px-5 pb-6 text-xs text-muted">
+      <footer className="content-shell mx-auto w-full px-5 pb-6 text-xs text-muted">
         <p aria-live="polite">{lastAction}</p>
         <a href="/" className="text-accent-text underline">
           Back to app

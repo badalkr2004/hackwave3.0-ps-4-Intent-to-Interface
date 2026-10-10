@@ -73,7 +73,7 @@ export function IntentBar({
   };
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-2">
+    <div className="intent-shell flex w-full flex-col gap-2">
       <form
         role="search"
         aria-label="What you are working on"

@@ -108,7 +108,7 @@ function WorkspaceApp({
         Skip to workspace
       </a>
 
-      <div className="mx-auto flex min-h-screen max-w-[1280px] flex-col px-4 pt-5 pb-28 sm:px-6 sm:pb-10 lg:px-8">
+      <div className="content-shell mx-auto flex min-h-screen w-full flex-col px-5 pt-5 pb-28 sm:pb-10">
         <header className="flex items-center justify-between gap-3 border-b border-border pb-4">
           <div className="min-w-0">
             <p className="font-display text-xl tracking-tight text-text sm:text-2xl">Gestalt</p>
@@ -122,9 +122,9 @@ function WorkspaceApp({
           </div>
         </header>
 
-        <div className="mt-6 flex flex-col gap-3 sm:mt-8">
+        <div className="mt-5 flex flex-col gap-2">
           <StackChip previousHeadline={previousHeadline} onBack={() => void s.back()} />
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-5">
             <Headline intent={s.spec?.intent ?? null} idle={!hasBrief && s.phase !== 'booting'} />
             {s.spec?.diff && (
               <DiffRibbon key={`${s.spec.id}:${s.spec.version}`} spec={s.spec} />
@@ -132,7 +132,7 @@ function WorkspaceApp({
           </div>
         </div>
 
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface px-4 py-3 sm:static sm:z-0 sm:mt-5 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface px-5 py-3 sm:static sm:z-0 sm:mt-5 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
           <IntentBar
             busy={busy}
             stageText={busy ? (s.stage ? STAGE_COPY[s.stage] : 'Arranging workspace…') : null}
@@ -145,7 +145,7 @@ function WorkspaceApp({
           />
         </div>
 
-        <main id="workspace" className="mt-6 flex flex-1 flex-col gap-4 sm:mt-8">
+        <main id="workspace" className="mt-5 flex flex-1 flex-col gap-5">
           <DegradedBanner show={s.degraded} />
           {s.error && (
             <p

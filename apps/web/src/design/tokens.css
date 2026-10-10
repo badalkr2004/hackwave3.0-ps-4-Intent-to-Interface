@@ -35,6 +35,9 @@
   --panel-min-l: 372px;
   --panel-max-l: 720px;
 
+  --content-max: 1440px;
+  --intent-max: 720px;
+
   /* Warm paper + ink. Brand accent is deep indigo; green/amber/red are status only. */
   --bg: #f3efe8;
   --surface: #fbf8f3;

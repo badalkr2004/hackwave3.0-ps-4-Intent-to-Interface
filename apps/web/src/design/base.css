@@ -142,6 +142,14 @@
     border-left: 2px solid var(--accent);
   }
 
+  .content-shell {
+    max-width: var(--content-max);
+  }
+
+  .intent-shell {
+    max-width: var(--intent-max);
+  }
+
   .sr-only-focusable:not(:focus):not(:focus-within) {
     position: absolute;
     width: 1px;

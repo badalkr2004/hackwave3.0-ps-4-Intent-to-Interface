@@ -58,7 +58,7 @@ export function ZoneGrid({
 
   return (
     <LayoutGroup>
-      <div className="grid w-full min-w-0 grid-cols-1 gap-4 [grid-template-areas:'center'_'left'_'right'] min-[700px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[700px]:[grid-template-areas:'center_left'_'center_right'] min-[1100px]:grid-cols-[minmax(0,3fr)_minmax(0,6fr)_minmax(0,3fr)] min-[1100px]:[grid-template-areas:'left_center_right']">
+      <div className="grid w-full min-w-0 grid-cols-1 gap-5 [grid-template-areas:'center'_'left'_'right'] min-[700px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[700px]:[grid-template-areas:'center_left'_'center_right'] min-[1100px]:grid-cols-[minmax(0,3fr)_minmax(0,6fr)_minmax(0,3fr)] min-[1100px]:[grid-template-areas:'left_center_right']">
         {ZONES.map(({ zone, area, label }) => {
           const inZone = panels
             .filter((p) => p.zone === zone)
@@ -84,7 +84,7 @@ export function ZoneGrid({
               })}
             </AnimatePresence>
           );
-          const className = `${area} flex min-w-0 flex-col content-start gap-4`;
+          const className = `${area} flex min-w-0 flex-col items-stretch content-start gap-5`;
           return label ? (
             <aside key={zone} aria-label={label} className={className}>
               {children}
