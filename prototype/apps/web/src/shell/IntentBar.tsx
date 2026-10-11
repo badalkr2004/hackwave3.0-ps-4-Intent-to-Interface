@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, House, LoaderCircle } from 'lucide-react';
+import { ArrowRight, House, LoaderCircle, Sparkles } from 'lucide-react';
 import { isTypingTarget, markIntentEdited } from '../lib/typing';
 import { INTENT_INPUT_ID } from './ids';
 
@@ -12,7 +12,46 @@ function chipLabel(prompt: string): string {
   if (t.includes('look into')) return 'Look into Acme';
   if (t.includes('sales') && t.includes('pie')) return 'Sales as pie chart';
   if (t.includes('sales report') || t.includes('sales analytics')) return 'Sales report';
+  if (t.includes('dev') && t.includes('capacity')) return 'Dev’s capacity';
+  if (t.includes('blocker')) return 'Open blockers';
   return prompt.length > 36 ? `${prompt.slice(0, 34)}…` : prompt;
+}
+
+function getFollowUpPrompts(
+  intent: { shape: string; scope?: { clientId?: string | null }; client?: string | null } | null | undefined,
+): string[] {
+  if (!intent || intent.shape === 'overview') return [];
+  const rawClient = intent.scope?.clientId ?? intent.client;
+  const clientName = rawClient
+    ? rawClient.charAt(0).toUpperCase() + rawClient.slice(1)
+    : 'Acme';
+
+  switch (intent.shape) {
+    case 'prepare':
+      return [
+        'Wait, why did their usage drop?',
+        'Show me everything overdue across clients',
+        `Show open blockers for ${clientName}`,
+      ];
+    case 'diagnose':
+      return [
+        'Show me everything overdue across clients',
+        `Look into ${clientName}`,
+        `Prepare me for ${clientName} tomorrow`,
+      ];
+    case 'triage':
+      return [
+        'Prepare me for Acme tomorrow',
+        'Show Dev’s capacity and workload',
+        'Show me the sales report in a pie chart',
+      ];
+    default:
+      return [
+        `Look into ${clientName}`,
+        'Show me everything overdue',
+        `Prepare me for ${clientName} tomorrow`,
+      ];
+  }
 }
 
 export interface IntentBarProps {
@@ -20,6 +59,7 @@ export interface IntentBarProps {
   stageText?: string | null;
   demoPrompts: string[];
   showSuggestions?: boolean;
+  activeIntent?: { shape: string; scope?: { clientId?: string | null }; client?: string | null; headline?: string } | null;
   onSubmit: (text: string) => void;
   onHome: () => void;
 }
@@ -31,10 +71,12 @@ export function IntentBar({
   stageText,
   demoPrompts,
   showSuggestions = true,
+  activeIntent,
   onSubmit,
   onHome,
 }: IntentBarProps) {
   const prompts = [...demoPrompts, ...EXTRA_PROMPTS];
+  const followUps = getFollowUpPrompts(activeIntent);
   const [text, setText] = useState('');
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -146,7 +188,32 @@ export function IntentBar({
           {error}
         </p>
       )}
-      {showSuggestions && !busy && prompts.length > 0 && (
+      {!busy && followUps.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-accent-text">
+            <Sparkles className="size-3" aria-hidden /> Next steps
+          </span>
+          <ul aria-label="Suggested follow-up steps" className="flex flex-wrap gap-2">
+            {followUps.map((p) => (
+              <li key={p}>
+                <button
+                  type="button"
+                  title={p}
+                  onClick={() => {
+                    setText(p);
+                    submit(p);
+                  }}
+                  className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-accent/25 bg-accent-bg/40 px-2.5 text-13 font-medium text-text transition-all duration-150 hover:border-accent hover:bg-accent-bg active:scale-95"
+                >
+                  <span>{chipLabel(p)}</span>
+                  <ArrowRight className="size-3 text-muted" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {followUps.length === 0 && showSuggestions && !busy && prompts.length > 0 && (
         <ul aria-label="Try one of these" className="flex flex-wrap gap-2">
           {prompts.map((p) => (
             <li key={p}>

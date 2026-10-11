@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { CircleAlert, LoaderCircle } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { CircleAlert, FileText, LoaderCircle } from 'lucide-react';
 import type { StatusStage } from '@gestalt/shared';
 import { AccessGate } from './auth/AccessGate';
 import { PanelActionsContext, type PanelActions } from './panels/types';
@@ -8,8 +8,10 @@ import { DiffRibbon } from './shell/DiffRibbon';
 import { GhostPreviews } from './shell/GhostPreviews';
 import { HEADLINE_ID, INTENT_INPUT_ID, WHY_DRAWER_HEADING_ID, panelHeadingId } from './shell/ids';
 import { AuthMenu } from './shell/AuthMenu';
+import { BriefDialog } from './shell/BriefDialog';
 import { DegradedBanner } from './shell/DegradedBanner';
 import { EmailDialog } from './shell/EmailDialog';
+import { MeetingAlertBanner } from './shell/MeetingAlertBanner';
 import { Toast } from './shell/Toast';
 import { Headline } from './shell/Headline';
 import { IntentBar } from './shell/IntentBar';
@@ -50,6 +52,31 @@ function WorkspaceApp({
 }) {
   const s = useWorkspace();
   const { init, runAction, toggleLens, cancelClarify } = s;
+  const [briefOpen, setBriefOpen] = useState(false);
+  const [dismissedMeeting, setDismissedMeeting] = useState<string | null>(null);
+  const [featuredMeeting, setFeaturedMeeting] = useState<{
+    id: string;
+    title: string;
+    clientName: string;
+    inHours: number;
+    clientId: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const upcomingPanel = s.spec?.panels.find((p) => p.componentId === 'upcoming_meetings');
+    const m = (
+      upcomingPanel?.props as {
+        meetings?: Array<{
+          id: string;
+          title: string;
+          clientName: string;
+          inHours: number;
+          clientId: string;
+        }>;
+      }
+    )?.meetings?.[0];
+    if (m) setFeaturedMeeting(m);
+  }, [s.spec?.panels]);
 
   useEffect(() => {
     void init();
@@ -122,10 +149,35 @@ function WorkspaceApp({
             )}
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setBriefOpen(true)}
+              disabled={!s.spec}
+              title="Export executive brief"
+              aria-label="Export executive brief"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md border border-border bg-surface px-3 text-sm font-medium text-text transition-colors hover:bg-surface-2 disabled:opacity-50"
+            >
+              <FileText className="size-4 text-accent" aria-hidden />
+              <span className="hidden sm:inline">Export brief</span>
+            </button>
             <WhyToggle on={s.lensOn} onToggle={s.toggleLens} />
             <AuthMenu activeOrg={activeOrg} onAuthChange={onAuthChange} />
           </div>
         </header>
+
+        {featuredMeeting &&
+          s.spec?.intent.shape !== 'prepare' &&
+          dismissedMeeting !== featuredMeeting.title && (
+            <div className="mt-4">
+              <MeetingAlertBanner
+                meeting={featuredMeeting}
+                onPrep={() =>
+                  void s.submit(`Prepare me for ${featuredMeeting.clientName} tomorrow`)
+                }
+                onDismiss={() => setDismissedMeeting(featuredMeeting.title)}
+              />
+            </div>
+          )}
 
         <div className="mt-5 flex flex-col gap-2">
           <StackChip previousHeadline={previousHeadline} onBack={() => void s.back()} />
@@ -144,6 +196,7 @@ function WorkspaceApp({
             showSuggestions={
               s.phase === 'idle' && (!s.spec || s.spec.intent.shape === 'overview')
             }
+            activeIntent={s.spec?.intent ?? null}
             demoPrompts={s.demoPrompts}
             onSubmit={(text) => void s.submit(text)}
             onHome={() => void s.home()}
@@ -226,6 +279,7 @@ function WorkspaceApp({
       </div>
 
       <EmailDialog email={s.email} onClose={s.closeEmail} />
+      <BriefDialog spec={s.spec} open={briefOpen} onClose={() => setBriefOpen(false)} />
       <Toast toast={s.toast} onDone={s.clearToast} />
 
       <div aria-live="polite" aria-atomic="true" className="sr-only">
