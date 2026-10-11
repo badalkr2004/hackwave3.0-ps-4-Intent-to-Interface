@@ -195,7 +195,7 @@ export function AnalyticsPage() {
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
         <div className="min-w-0">
           <a
-            href="/"
+            href="/app"
             className="inline-flex items-center gap-1.5 text-sm text-accent-text hover:underline"
           >
             <ArrowLeft aria-hidden className="size-3.5" />

@@ -1,0 +1,188 @@
+/* Landing atmosphere — scoped; reuses design tokens, no second palette. */
+
+.landing {
+  --landing-ink-wash: color-mix(in srgb, var(--accent) 7%, transparent);
+  --landing-fiber: color-mix(in srgb, var(--text) 4.5%, transparent);
+  --landing-edge: color-mix(in srgb, var(--border-strong) 55%, transparent);
+  position: relative;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: clip;
+}
+
+.landing::before {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.55;
+  background:
+    radial-gradient(ellipse 90% 55% at 12% -10%, var(--landing-ink-wash), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 88% 8%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 50%),
+    linear-gradient(180deg, transparent 0%, var(--bg) 92%);
+}
+
+.landing::after {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.35;
+  background-image:
+    repeating-linear-gradient(
+      -12deg,
+      transparent,
+      transparent 11px,
+      var(--landing-fiber) 11px,
+      var(--landing-fiber) 12px
+    );
+  mask-image: linear-gradient(to bottom, black 0%, transparent 78%);
+}
+
+.landing > * {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-nav {
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+}
+
+.landing-nav button {
+  min-height: 2.25rem;
+  padding-inline: 0.65rem;
+  border-color: transparent;
+  background: transparent;
+}
+
+.landing-nav button:hover {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.landing-stage {
+  position: sticky;
+  top: 3.5rem;
+  height: calc(100svh - 3.5rem);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.landing-cta {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 1.35rem;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.02em;
+  transition:
+    transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 180ms ease,
+    border-color 180ms ease,
+    opacity 180ms ease;
+}
+
+.landing-cta:hover {
+  transform: translateY(-1px);
+}
+
+.landing-cta:active {
+  transform: translateY(0);
+}
+
+.landing-cta-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.landing-cta-primary:hover {
+  opacity: 0.94;
+}
+
+.landing-cta-ghost {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text);
+}
+
+.landing-cta-ghost:hover {
+  background: var(--surface);
+}
+
+.landing-hero-rule {
+  height: 1px;
+  width: min(12rem, 40vw);
+  background: linear-gradient(90deg, var(--accent), transparent);
+  transform-origin: left center;
+}
+
+.landing-shard {
+  border: 1px solid var(--landing-edge);
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
+  box-shadow: var(--shadow-1);
+  user-select: none;
+}
+
+.landing-shard.is-noise {
+  filter: saturate(0.85);
+  opacity: 0.88;
+}
+
+.landing-panel-mock {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.landing-panel-mock[data-accent='true'] {
+  border-left: 2px solid var(--accent);
+}
+
+.landing-receipt {
+  border-top: 1px dashed var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.landing-intent-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: var(--accent);
+  animation: landing-caret 1s steps(1) infinite;
+}
+
+@keyframes landing-caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.landing-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  height: 2px;
+  background: var(--accent);
+  transform-origin: 0 50%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-cta:hover {
+    transform: none;
+  }
+
+  .landing-intent-caret {
+    animation: none;
+  }
+}

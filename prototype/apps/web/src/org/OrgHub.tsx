@@ -129,7 +129,7 @@ export function OrgHub() {
       setNotice(`Created ${org.name}. Opening workspace…`);
       await refresh();
       setActiveId(org.id);
-      window.location.assign('/');
+      window.location.assign('/app');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create organization');
       setBusy(false);
@@ -146,7 +146,7 @@ export function OrgHub() {
       setNotice(`Joined ${org.name}. Opening workspace…`);
       await refresh();
       setActiveId(org.id);
-      window.location.assign('/');
+      window.location.assign('/app');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not join');
       setBusy(false);
@@ -751,7 +751,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             Analytics
           </a>
           <a
-            href="/"
+            href="/app"
             className="inline-flex min-h-10 items-center gap-2 text-sm text-accent-text hover:underline"
           >
             <ArrowLeft aria-hidden className="size-3.5" />

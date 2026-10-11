@@ -31,7 +31,7 @@ export function OnboardPage() {
       .then((me) => {
         if (cancelled) return;
         if (!me.authEnabled) {
-          window.location.replace('/');
+          window.location.replace('/app');
           return;
         }
         if (!me.user) {
@@ -39,7 +39,7 @@ export function OnboardPage() {
           return;
         }
         if (me.orgs.length > 0) {
-          window.location.replace('/');
+          window.location.replace('/app');
           return;
         }
         setUserName(me.user.name);
@@ -54,7 +54,7 @@ export function OnboardPage() {
   }, []);
 
   const goWorkspace = (_org: OrgSummary) => {
-    window.location.assign('/');
+    window.location.assign('/app');
   };
 
   const onCreate = async (e: FormEvent) => {

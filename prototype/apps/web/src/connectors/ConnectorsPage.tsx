@@ -513,7 +513,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             Organization
           </a>
           <a
-            href="/"
+            href="/app"
             className="inline-flex min-h-10 items-center gap-2 text-sm text-accent-text hover:underline"
           >
             <ArrowLeft aria-hidden className="size-3.5" />

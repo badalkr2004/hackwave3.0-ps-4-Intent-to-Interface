@@ -25,11 +25,11 @@ export function SignupPage() {
       .then((me) => {
         if (cancelled) return;
         if (!me.authEnabled) {
-          window.location.replace('/');
+          window.location.replace('/app');
           return;
         }
         if (me.user) {
-          window.location.replace(me.orgs.length > 0 ? '/' : '/onboard');
+          window.location.replace(me.orgs.length > 0 ? '/app' : '/onboard');
           return;
         }
         setGoogleOAuth(Boolean(me.googleOAuth));

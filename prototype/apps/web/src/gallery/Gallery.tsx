@@ -175,7 +175,7 @@ export function Gallery() {
       </main>
       <footer className="content-shell mx-auto w-full px-5 pb-6 text-xs text-muted">
         <p aria-live="polite">{lastAction}</p>
-        <a href="/" className="text-accent-text underline">
+        <a href="/app" className="text-accent-text underline">
           Back to app
         </a>
       </footer>
