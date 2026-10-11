@@ -224,6 +224,25 @@ export const googleMeeting = appSchema.table('google_meeting', {
     .notNull(),
 });
 
+/** MCP personal access tokens (hash only; plaintext shown once at issue). */
+export const mcpAccessToken = appSchema.table('mcp_access_token', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  name: text('name').notNull().default('IDE'),
+  tokenPrefix: text('token_prefix').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  scopes: jsonb('scopes').$type<string[]>().notNull().default(['org:read', 'org:write', 'jira', 'google']),
+  expiresAt: timestamp('expires_at'),
+  revokedAt: timestamp('revoked_at'),
+  lastUsedAt: timestamp('last_used_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 export const userWorkspacePrefs = appSchema.table('user_workspace_prefs', {
   userId: text('user_id')
     .primaryKey()

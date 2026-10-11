@@ -1,3 +1,5 @@
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Router } from 'express';
 import { z } from 'zod';
 import { requestUser } from '../lib/requestUser';
@@ -10,6 +12,8 @@ import {
   markGoogleConnected,
   updateJiraSettings,
 } from '../services/connectors';
+import { buildMcpClientConfigs } from '../services/mcpClientConfigs';
+import { issueMcpToken, listMcpTokens, revokeMcpToken } from '../services/mcpTokens';
 import {
   generateMomFromGoogleMeeting,
   listGoogleMeetings,
@@ -22,6 +26,9 @@ import {
   resolveIssue,
   searchRecentIssues,
 } from '../services/jira';
+import { getActiveOrgId } from '../services/orgs';
+
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..');
 
 export const connectorsRouter = Router();
 
@@ -44,6 +51,84 @@ connectorsRouter.get('/connectors', async (req, res) => {
     res.json(await listConnectors(user.id));
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to load connectors' });
+  }
+});
+
+/**
+ * IDE / MCP setup status for the signed-in user.
+ * Auth for clients is a personal access token bound to the active org — no user id in client config.
+ */
+connectorsRouter.get('/connectors/mcp-setup', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const activeOrganizationId = await getActiveOrgId(user.id);
+    const tokens = await listMcpTokens(user.id);
+    const ready = Boolean(activeOrganizationId);
+    const readyIssues: string[] = [];
+    if (!activeOrganizationId) {
+      readyIssues.push('Select an active organization in Gestalt (Organization page).');
+    }
+
+    res.json({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      activeOrganizationId,
+      ready,
+      readyIssues,
+      tokens,
+      mcpCwd: resolve(repoRoot, 'apps/mcp').replace(/\\/g, '/'),
+      clients: [
+        { id: 'cursor', name: 'Cursor' },
+        { id: 'claude-code', name: 'Claude Code' },
+        { id: 'generic', name: 'Other MCP hosts' },
+        { id: 'custom', name: 'Custom MCP client' },
+      ],
+    });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Failed to load MCP setup' });
+  }
+});
+
+/** Issue a new org-bound MCP token and return install configs for all supported clients. */
+connectorsRouter.post('/connectors/mcp-tokens', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const body = z
+    .object({
+      name: z.string().min(1).max(64).optional(),
+      expiresInDays: z.number().int().min(1).max(365).nullable().optional(),
+    })
+    .safeParse(req.body ?? {});
+  if (!body.success) {
+    res.status(400).json({ error: 'Invalid token options.' });
+    return;
+  }
+  try {
+    const issued = await issueMcpToken(user.id, body.data);
+    const mcpCwd = resolve(repoRoot, 'apps/mcp').replace(/\\/g, '/');
+    const configs = buildMcpClientConfigs({ token: issued.token, mcpCwd });
+    res.status(201).json({
+      token: issued.token,
+      meta: issued.meta,
+      ...configs,
+      notice:
+        'Copy or install now — the full token is shown only once. It grants access to this organization via any MCP client.',
+    });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Could not create MCP token' });
+  }
+});
+
+connectorsRouter.delete('/connectors/mcp-tokens/:id', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const meta = await revokeMcpToken(user.id, String(req.params.id));
+    res.json({ meta });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Could not revoke token' });
   }
 });
 

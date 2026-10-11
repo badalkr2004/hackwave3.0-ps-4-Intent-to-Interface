@@ -14,6 +14,7 @@
     "db:reset": "bun run --cwd apps/server db:reset",
     "db:check": "bun run --cwd apps/server db:check",
     "llm:smoke": "bun run --cwd apps/server llm:smoke",
+    "mcp": "bun run --cwd apps/mcp start",
     "build": "bun run --filter '*' build",
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun run --filter '*' test",
@@ -31,5 +32,9 @@
     "prettier": "^3.6.0",
     "typescript": "~5.9.0",
     "typescript-eslint": "^8.46.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.5"
   }
 }

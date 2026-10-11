@@ -119,14 +119,14 @@ export function patchJiraSettings(body: { projectKey?: string | null }) {
   });
 }
 
+export function fetchJiraProjects() {
+  return json<{ projects: JiraProject[] }>('/api/connectors/jira/projects');
+}
+
 export function fetchJiraIssues(limit = 15) {
   return json<{ issues: JiraIssue[]; projectKey: string | null }>(
     `/api/connectors/jira/issues?limit=${limit}`,
   );
-}
-
-export function fetchJiraProjects() {
-  return json<{ projects: JiraProject[] }>('/api/connectors/jira/projects');
 }
 
 export function createJiraIssue(body: {
@@ -152,6 +152,61 @@ export function confirmGoogleConnect() {
   return json<{ google: GoogleConnector }>('/api/connectors/google/connect', {
     method: 'POST',
     body: '{}',
+  });
+}
+
+export type McpTokenMeta = {
+  id: string;
+  name: string;
+  tokenPrefix: string;
+  organizationId: string;
+  scopes: string[];
+  expiresAt: string | null;
+  revokedAt: string | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+  active: boolean;
+};
+
+export type McpSetupStatus = {
+  userId: string;
+  email: string;
+  name: string;
+  activeOrganizationId: string | null;
+  ready: boolean;
+  readyIssues: string[];
+  tokens: McpTokenMeta[];
+  mcpCwd: string;
+  clients: Array<{ id: string; name: string }>;
+};
+
+export type McpIssuedAccess = {
+  token: string;
+  meta: McpTokenMeta;
+  notice: string;
+  cursorInstallLink: string;
+  cursorConfigJson: string;
+  claudeCodeConfigJson: string;
+  claudeCliCommand: string;
+  genericStdioConfigJson: string;
+  customClientHintJson: string;
+  clients: Array<{ id: string; name: string; install: string }>;
+};
+
+export function fetchMcpSetup() {
+  return json<McpSetupStatus>('/api/connectors/mcp-setup');
+}
+
+export function issueMcpToken(body?: { name?: string; expiresInDays?: number | null }) {
+  return json<McpIssuedAccess>('/api/connectors/mcp-tokens', {
+    method: 'POST',
+    body: JSON.stringify(body ?? {}),
+  });
+}
+
+export function revokeMcpToken(id: string) {
+  return json<{ meta: McpTokenMeta }>(`/api/connectors/mcp-tokens/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
   });
 }
 

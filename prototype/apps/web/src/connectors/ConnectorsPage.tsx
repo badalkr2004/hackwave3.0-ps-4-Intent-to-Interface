@@ -25,6 +25,7 @@ import {
 } from '../lib/connectorsApi';
 import { GoogleMeetSection } from './GoogleMeetSection';
 import { JiraTickets } from './JiraTickets';
+import { McpSetupPanel } from './McpSetupPanel';
 
 export function ConnectorsPage() {
   const [booting, setBooting] = useState(true);
@@ -329,6 +330,19 @@ export function ConnectorsPage() {
             );
           })}
         </ul>
+      </section>
+
+      <section className="mt-10 border-t border-border pt-8" aria-labelledby="mcp-setup-heading">
+        <h2 id="mcp-setup-heading" className="font-display text-xl text-text">
+          IDE access
+        </h2>
+        <p className="mt-2 text-sm text-muted">
+          Connect your active organization to Cursor, Claude Code, or any MCP client with one
+          personal token — then ask for intent-based org reports.
+        </p>
+        <div className="mt-5">
+          <McpSetupPanel />
+        </div>
       </section>
 
       {adding && !jira?.connected && (
