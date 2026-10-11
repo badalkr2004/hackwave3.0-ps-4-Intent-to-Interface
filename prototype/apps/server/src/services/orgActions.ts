@@ -27,7 +27,7 @@ export async function listActionItems(
 
   const today = new Date().toISOString().slice(0, 10);
   const enriched = rows.map((r) => {
-    let status = r.status as 'open' | 'done' | 'missed';
+    const status = r.status as 'open' | 'done' | 'missed';
     const sla =
       status === 'open' && r.due
         ? r.due < today

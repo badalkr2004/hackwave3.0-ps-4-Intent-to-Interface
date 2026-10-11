@@ -51,6 +51,8 @@ export function OrgHub() {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [actionLoading, setActionLoading] = useState<Record<string, 'done' | 'missed' | 'open'>>({});
+  const [rollingSla, setRollingSla] = useState(false);
   const [orgName, setOrgName] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [clientId, setClientId] = useState('');
@@ -220,20 +222,44 @@ export function OrgHub() {
 
   const onActionStatus = async (item: ActionItem, status: ActionItem['status']) => {
     if (!active) return;
-    setBusy(true);
+    setActionLoading((prev) => ({ ...prev, [item.id]: status }));
+    setError(null);
     try {
-      await patchActionItem(active.id, item.id, { status });
-      await loadOrgData(active.id);
+      const res = await patchActionItem(active.id, item.id, { status });
+      if (res?.item) {
+        setActions((prev) => prev.map((a) => (a.id === item.id ? res.item : a)));
+      } else {
+        const today = new Date().toISOString().slice(0, 10);
+        const sla =
+          status === 'open' && item.due
+            ? item.due < today
+              ? 'overdue'
+              : item.due === today
+                ? 'due_today'
+                : 'on_track'
+            : status === 'done'
+              ? 'done'
+              : status === 'missed'
+                ? 'missed'
+                : 'none';
+        setActions((prev) => prev.map((a) => (a.id === item.id ? { ...a, status, sla } : a)));
+      }
+      void loadOrgData(active.id).catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update action');
     } finally {
-      setBusy(false);
+      setActionLoading((prev) => {
+        const next = { ...prev };
+        delete next[item.id];
+        return next;
+      });
     }
   };
 
   const onRollSla = async () => {
     if (!active) return;
-    setBusy(true);
+    setRollingSla(true);
+    setError(null);
     try {
       const r = await rollActionSla(active.id);
       setNotice(r.updated ? `Marked ${r.updated} overdue items as missed.` : 'No overdue open items.');
@@ -241,7 +267,7 @@ export function OrgHub() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not roll SLA');
     } finally {
-      setBusy(false);
+      setRollingSla(false);
     }
   };
 
@@ -520,9 +546,10 @@ Action items:
                   <button
                     type="button"
                     onClick={() => void onRollSla()}
-                    disabled={busy}
-                    className="text-xs text-accent-text underline-offset-2 hover:underline"
+                    disabled={busy || rollingSla}
+                    className="inline-flex items-center gap-1.5 text-xs text-accent-text underline-offset-2 hover:underline disabled:opacity-50"
                   >
+                    {rollingSla && <LoaderCircle className="size-3 animate-spin" aria-hidden />}
                     Mark overdue as missed
                   </button>
                 )}
@@ -531,54 +558,85 @@ Action items:
                 <p className="text-sm text-muted">No action items yet — ingest minutes first.</p>
               ) : (
                 <ul className="flex flex-col gap-2">
-                  {actions.map((a) => (
-                    <li key={a.id} className="sheet flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-text">{a.text}</p>
-                        <p className="mt-1 text-xs text-muted">
-                          {a.owner ? `Owner: ${a.owner}` : 'Unassigned'}
-                          {a.due ? ` · Due ${a.due}` : ''}
-                          {a.clientId
-                            ? ` · ${clients.find((c) => c.id === a.clientId)?.name ?? a.clientId}`
-                            : ''}
-                          {' · '}
-                          <SlaChip sla={a.sla} />
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 flex-wrap gap-1">
-                        {a.status !== 'done' && (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void onActionStatus(a, 'done')}
-                            className="inline-flex min-h-9 items-center gap-1 rounded-md border border-border px-2 text-xs text-text hover:bg-surface-2"
-                          >
-                            <Check className="size-3.5" /> Done
-                          </button>
-                        )}
-                        {a.status !== 'open' && (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void onActionStatus(a, 'open')}
-                            className="min-h-9 rounded-md border border-border px-2 text-xs text-muted hover:text-text"
-                          >
-                            Reopen
-                          </button>
-                        )}
-                        {a.status === 'open' && (
-                          <button
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void onActionStatus(a, 'missed')}
-                            className="min-h-9 rounded-md border border-border px-2 text-xs text-danger"
-                          >
-                            Missed
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  ))}
+                  {actions.map((a) => {
+                    const pendingStatus = actionLoading[a.id];
+                    const isItemLoading = Boolean(pendingStatus);
+                    return (
+                      <li
+                        key={a.id}
+                        className={`sheet flex flex-col gap-2 px-4 py-3 transition-colors sm:flex-row sm:items-center sm:justify-between ${
+                          isItemLoading ? 'ring-1 ring-accent/30 bg-surface-2/40' : ''
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-text">{a.text}</p>
+                          <p className="mt-1 text-xs text-muted">
+                            {a.owner ? `Owner: ${a.owner}` : 'Unassigned'}
+                            {a.due ? ` · Due ${a.due}` : ''}
+                            {a.clientId
+                              ? ` · ${clients.find((c) => c.id === a.clientId)?.name ?? a.clientId}`
+                              : ''}
+                            {' · '}
+                            {pendingStatus ? (
+                              <span className="inline-flex items-center gap-1 font-medium text-accent-text">
+                                <LoaderCircle className="size-3 animate-spin" aria-hidden />
+                                {pendingStatus === 'done'
+                                  ? 'Marking done…'
+                                  : pendingStatus === 'missed'
+                                    ? 'Marking missed…'
+                                    : 'Reopening…'}
+                              </span>
+                            ) : (
+                              <SlaChip sla={a.sla} />
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex shrink-0 flex-wrap gap-1">
+                          {a.status !== 'done' && (
+                            <button
+                              type="button"
+                              disabled={isItemLoading || busy}
+                              onClick={() => void onActionStatus(a, 'done')}
+                              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-text transition-all duration-150 hover:bg-surface-2 active:scale-95 disabled:pointer-events-none disabled:opacity-60"
+                            >
+                              {pendingStatus === 'done' ? (
+                                <LoaderCircle className="size-3.5 animate-spin text-accent-text" aria-hidden />
+                              ) : (
+                                <Check className="size-3.5" aria-hidden />
+                              )}
+                              {pendingStatus === 'done' ? 'Saving…' : 'Done'}
+                            </button>
+                          )}
+                          {a.status !== 'open' && (
+                            <button
+                              type="button"
+                              disabled={isItemLoading || busy}
+                              onClick={() => void onActionStatus(a, 'open')}
+                              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-muted transition-all duration-150 hover:text-text hover:bg-surface-2 active:scale-95 disabled:pointer-events-none disabled:opacity-60"
+                            >
+                              {pendingStatus === 'open' && (
+                                <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+                              )}
+                              {pendingStatus === 'open' ? 'Reopening…' : 'Reopen'}
+                            </button>
+                          )}
+                          {a.status === 'open' && (
+                            <button
+                              type="button"
+                              disabled={isItemLoading || busy}
+                              onClick={() => void onActionStatus(a, 'missed')}
+                              className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2.5 text-xs font-medium text-danger transition-all duration-150 hover:border-danger/30 hover:bg-danger-bg active:scale-95 disabled:pointer-events-none disabled:opacity-60"
+                            >
+                              {pendingStatus === 'missed' && (
+                                <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+                              )}
+                              {pendingStatus === 'missed' ? 'Saving…' : 'Missed'}
+                            </button>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </section>
