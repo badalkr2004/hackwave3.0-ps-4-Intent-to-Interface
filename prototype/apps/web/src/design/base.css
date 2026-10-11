@@ -345,6 +345,219 @@
   }
 }
 
+/* Compose overlay — calm assemble theater (no artificial wait; unmounts with busy). */
+.compose-overlay {
+  animation: compose-overlay-in 200ms ease-out both;
+}
+
+.compose-overlay-veil {
+  background:
+    radial-gradient(ellipse 55% 42% at 50% 48%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 72%),
+    color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+/* Keep motion near the center copy — not full-screen roam. */
+.compose-stage-inner {
+  position: relative;
+  width: min(520px, 88vw);
+  height: min(340px, 52vh);
+}
+
+.compose-star {
+  opacity: 0;
+  animation: compose-twinkle 3.6s ease-in-out infinite;
+}
+
+.compose-shimmer {
+  background: linear-gradient(
+    105deg,
+    var(--surface-2) 0%,
+    var(--surface-2) 40%,
+    color-mix(in srgb, var(--accent-text) 22%, var(--surface-2)) 50%,
+    var(--surface-2) 60%,
+    var(--surface-2) 100%
+  );
+  background-size: 220% 100%;
+  animation: compose-shimmer-move 2.8s linear infinite;
+}
+
+.compose-line {
+  color: var(--text);
+  animation: compose-line-in 380ms ease-out both;
+}
+
+.compose-orb {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.compose-orb-core {
+  position: absolute;
+  inset: 12px;
+  border-radius: 999px;
+  background: var(--accent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 35%, transparent);
+  animation: compose-orb-pulse 2.4s ease-in-out infinite;
+}
+
+.compose-orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  animation: compose-orb-spin 5.5s linear infinite;
+}
+
+.compose-orb-ring::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--accent-text);
+  transform: translateX(-50%);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-text) 60%, transparent);
+}
+
+.compose-tile {
+  opacity: 0.78;
+  will-change: left, top, transform;
+}
+
+/* Slow, close orbit around the center message. */
+.compose-tile-a {
+  animation: compose-tile-a 16s ease-in-out infinite;
+}
+.compose-tile-b {
+  animation: compose-tile-b 18s ease-in-out infinite;
+}
+.compose-tile-c {
+  animation: compose-tile-c 17s ease-in-out infinite;
+}
+.compose-tile-d {
+  animation: compose-tile-d 19s ease-in-out infinite;
+}
+
+@keyframes compose-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes compose-twinkle {
+  0%,
+  100% {
+    opacity: 0.12;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+}
+
+@keyframes compose-shimmer-move {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+@keyframes compose-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes compose-orb-pulse {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes compose-orb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Tight paths near center — small travel, slow pace. */
+@keyframes compose-tile-a {
+  0%,
+  100% {
+    left: 4%;
+    top: 10%;
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    left: 10%;
+    top: 22%;
+    transform: rotate(1deg);
+  }
+}
+
+@keyframes compose-tile-b {
+  0%,
+  100% {
+    left: 66%;
+    top: 8%;
+    transform: rotate(1deg);
+  }
+  50% {
+    left: 58%;
+    top: 20%;
+    transform: rotate(-1.5deg);
+  }
+}
+
+@keyframes compose-tile-c {
+  0%,
+  100% {
+    left: 6%;
+    top: 62%;
+    transform: rotate(1deg);
+  }
+  50% {
+    left: 14%;
+    top: 52%;
+    transform: rotate(-1deg);
+  }
+}
+
+@keyframes compose-tile-d {
+  0%,
+  100% {
+    left: 62%;
+    top: 64%;
+    transform: rotate(-1deg);
+  }
+  50% {
+    left: 54%;
+    top: 52%;
+    transform: rotate(1.5deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -355,5 +568,35 @@
   .auth-fade,
   .auth-fade-late {
     animation: none !important;
+  }
+
+  .compose-overlay,
+  .compose-star,
+  .compose-shimmer,
+  .compose-line,
+  .compose-orb-core,
+  .compose-orb-ring,
+  .compose-tile-a,
+  .compose-tile-b,
+  .compose-tile-c,
+  .compose-tile-d {
+    animation: none !important;
+  }
+
+  .compose-tile-a {
+    left: 4%;
+    top: 10%;
+  }
+  .compose-tile-b {
+    left: 66%;
+    top: 8%;
+  }
+  .compose-tile-c {
+    left: 6%;
+    top: 62%;
+  }
+  .compose-tile-d {
+    left: 62%;
+    top: 64%;
   }
 }

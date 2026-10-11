@@ -6,6 +6,7 @@ import { App } from './App';
 import { LoginPage } from './auth/LoginPage';
 import { OnboardPage } from './auth/OnboardPage';
 import { SignupPage } from './auth/SignupPage';
+import { ConnectorsPage } from './connectors/ConnectorsPage';
 import { Gallery } from './gallery/Gallery';
 import { OrgHub } from './org/OrgHub';
 import { AppErrorBoundary } from './shell/AppErrorBoundary';
@@ -22,6 +23,7 @@ function pageFor(pathname: string) {
   if (pathname.startsWith('/onboard')) return <OnboardPage />;
   if (pathname.startsWith('/analytics')) return <AnalyticsPage />;
   if (pathname.startsWith('/org')) return <OrgHub />;
+  if (pathname.startsWith('/connectors')) return <ConnectorsPage />;
   return <App />;
 }
 

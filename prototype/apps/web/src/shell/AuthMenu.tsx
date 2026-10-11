@@ -139,6 +139,13 @@ export function AuthMenu({
           </a>
           <a
             role="menuitem"
+            href="/connectors"
+            className="block px-3 py-2 text-sm text-text hover:bg-surface-2"
+          >
+            Connectors
+          </a>
+          <a
+            role="menuitem"
             href="/analytics"
             className="block px-3 py-2 text-sm text-text hover:bg-surface-2"
           >

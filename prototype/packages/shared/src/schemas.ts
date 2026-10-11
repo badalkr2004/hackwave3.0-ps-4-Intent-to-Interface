@@ -23,6 +23,7 @@ export const NeedType = z.enum([
   'capacity',
   'available_actions',
   'sales_pulse',
+  'jira_tickets',
 ]);
 export type NeedType = z.infer<typeof NeedType>;
 

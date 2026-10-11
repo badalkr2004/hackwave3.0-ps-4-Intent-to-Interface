@@ -15,6 +15,8 @@ export interface LoadContext {
   allowedClientIds: readonly string[] | null;
   /** Active organization for tenant-scoped loaders (sales, MOM). Null when auth is off. */
   organizationId: string | null;
+  /** Signed-in user — connectors (Jira) are per-user. Null when auth is off. */
+  userId: string | null;
   /** Memoizes shared sub-queries (e.g. usage analysis) across loaders within one loadAll call. */
   once<T>(key: string, fn: () => Promise<T>): Promise<T>;
   /** Another module's props for the same scope (memoized), e.g. for deferred panels' digests. */

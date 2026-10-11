@@ -9,6 +9,7 @@ import { GhostPreviews } from './shell/GhostPreviews';
 import { HEADLINE_ID, INTENT_INPUT_ID, WHY_DRAWER_HEADING_ID, panelHeadingId } from './shell/ids';
 import { AuthMenu } from './shell/AuthMenu';
 import { BriefDialog } from './shell/BriefDialog';
+import { ComposeOverlay } from './shell/ComposeOverlay';
 import { DegradedBanner } from './shell/DegradedBanner';
 import { EmailDialog } from './shell/EmailDialog';
 import { MeetingAlertBanner } from './shell/MeetingAlertBanner';
@@ -21,6 +22,7 @@ import { WhyToggle } from './shell/WhyToggle';
 import { ThemeToggle } from './shell/ThemeToggle';
 import { ZoneGrid } from './shell/ZoneGrid';
 import { VitalsBar } from './shell/VitalsBar';
+import { JiraDashboardStrip } from './connectors/JiraDashboardStrip';
 import { useWorkspace } from './store/workspace';
 import type { OrgSummary } from './lib/orgApi';
 
@@ -240,6 +242,7 @@ function WorkspaceApp({
                   onTogglePin={(id, pinned) => void s.pin(id, pinned)}
                   onDismiss={(id) => void s.dismiss(id)}
                 />
+                <JiraDashboardStrip signedIn={Boolean(activeOrg)} />
                 {s.lensOn && (
                   <WhyDrawer
                     spec={s.spec}
@@ -275,6 +278,9 @@ function WorkspaceApp({
             <a href="/org" className="text-accent-text underline-offset-2 hover:underline">
               Organization
             </a>
+            <a href="/connectors" className="text-accent-text underline-offset-2 hover:underline">
+              Connectors
+            </a>
             <a href="/gallery" className="text-accent-text underline-offset-2 hover:underline">
               Component gallery
             </a>
@@ -282,6 +288,7 @@ function WorkspaceApp({
         </footer>
       </div>
 
+      <ComposeOverlay open={busy} stage={s.stage} />
       <EmailDialog email={s.email} onClose={s.closeEmail} />
       <BriefDialog spec={s.spec} open={briefOpen} onClose={() => setBriefOpen(false)} />
       <Toast toast={s.toast} onDone={s.clearToast} />

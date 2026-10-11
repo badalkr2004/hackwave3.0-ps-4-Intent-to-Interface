@@ -23,6 +23,8 @@ export interface Session {
    * Applied to the sales_pulse registry module via preferredChart.
    */
   preferredViz: VizChart | null;
+  /** True when the latest compose ask was about Jira / tickets. */
+  jiraFocus: boolean;
   /** Compositions, newest last; the last one is on screen. */
   stack: UISpec[];
   pinned: Set<string>;
@@ -54,6 +56,7 @@ export function createSession(opts?: {
     organizationId: opts?.organizationId ?? null,
     allowedClientIds: opts?.allowedClientIds ?? null,
     preferredViz: null,
+    jiraFocus: false,
     stack: [],
     pinned: new Set(opts?.pinned ?? []),
     dismissed: new Set(opts?.dismissed ?? []),

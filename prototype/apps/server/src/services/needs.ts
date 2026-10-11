@@ -141,3 +141,28 @@ export function withSalesVizBoost(base: readonly Need[]): Need[] {
   }
   return needs;
 }
+
+/** Promote jira_tickets when the user asked about Jira / tickets. */
+export function withJiraBoost(base: readonly Need[]): Need[] {
+  const needs = base.map((n) => ({ ...n }));
+  const jira = needs.find((n) => n.type === 'jira_tickets');
+  if (jira) {
+    jira.priority = 1;
+    jira.source = 'llm_adjusted';
+    jira.reason = 'Requested Jira / ticket context.';
+  } else {
+    needs.push({
+      type: 'jira_tickets',
+      question: NEED_QUESTIONS.jira_tickets,
+      priority: 1,
+      source: 'llm_added',
+      reason: 'Requested Jira / ticket context.',
+    });
+  }
+  for (const n of needs) {
+    if (n.type === 'usage_trend' || n.type === 'overdue_work' || n.type === 'sales_pulse') {
+      n.priority = Math.min(n.priority, 0.4);
+    }
+  }
+  return needs;
+}

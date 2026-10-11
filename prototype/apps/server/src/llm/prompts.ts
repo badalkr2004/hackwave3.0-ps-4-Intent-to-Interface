@@ -3,7 +3,7 @@
 export const INTENT_SYSTEM = `You classify a workspace request into an interpretation of (shape, scope). You never design UI.
 
 SHAPES
-- overview: generic home view, "dashboard", "home", "what's going on".
+- overview: generic home view, "dashboard", "home", "what's going on", or Jira/ticket board asks.
 - prepare: get ready for a meeting, call, review or presentation with a client.
 - diagnose: investigate why a metric changed (usage drop, churn, spike).
 - triage: review overdue, late, blocked or at-risk work and decide what to do first.

@@ -6,6 +6,7 @@ import { BlockerChain } from './BlockerChain';
 import { ClientSnapshot } from './ClientSnapshot';
 import { CommsTimeline } from './CommsTimeline';
 import { HypothesisList } from './HypothesisList';
+import { JiraTicketsPanel } from './JiraTickets';
 import { LastMeetingRecap } from './LastMeetingRecap';
 import { OpenIssues } from './OpenIssues';
 import { OverdueQueue } from './OverdueQueue';
@@ -70,6 +71,7 @@ export const PANELS: Record<ComponentId, PanelEntry> = {
   blocker_chain: definePanel('blocker_chain', BlockerChain, 'list'),
   workload_bars: definePanel('workload_bars', WorkloadBars, 'bars'),
   sales_pulse: definePanel('sales_pulse', SalesPulse, 'bars'),
+  jira_tickets: definePanel('jira_tickets', JiraTicketsPanel, 'list'),
   action_bar: definePanel('action_bar', ActionBar, 'buttons'),
 };
 

@@ -6,3 +6,4 @@ export * from './panels';
 export * from './diff';
 export * from './api';
 export * from './salesViz';
+export * from './jiraRequest';

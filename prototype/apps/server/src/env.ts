@@ -38,6 +38,12 @@ const EnvSchema = z.object({
   WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  /** Atlassian API token used when a user connects Jira without pasting their own token. */
+  JIRA_API_KEY: z.string().optional(),
+  /** Optional defaults pre-filled / used when connecting Jira. */
+  JIRA_BASE_URL: z.string().url().optional(),
+  JIRA_EMAIL: z.string().email().optional(),
+  JIRA_PROJECT_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

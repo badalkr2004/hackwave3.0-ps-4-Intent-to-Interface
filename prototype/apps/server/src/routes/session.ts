@@ -9,6 +9,9 @@ import {
   ResolveRequest,
   computeDiff,
   isComponentId,
+  jiraHeadline,
+  jiraSummary,
+  parseJiraRequest,
   parseSalesVizRequest,
   salesVizHeadline,
   salesVizSummary,
@@ -220,13 +223,27 @@ sessionRouter.post('/session/:id/compose', async (req, res) => {
     // as every other prompt; preferredViz stamps the chart format onto sales_pulse.
     const viz = parseSalesVizRequest(body.text);
     session.preferredViz = viz?.chart ?? null;
+    session.jiraFocus = parseJiraRequest(body.text);
     if (viz) {
+      session.jiraFocus = false;
       const intent: Intent = {
         shape: 'overview',
         scope: { clientId: null, projectId: null, timeRange: '30d' },
         confidence: 0.9,
         summary: salesVizSummary(viz.chart),
         headline: salesVizHeadline(viz.chart),
+      };
+      session.pendingClarification = null;
+      await streamIntent(session, stream, intent, body.requestId, false);
+      return;
+    }
+    if (session.jiraFocus) {
+      const intent: Intent = {
+        shape: 'overview',
+        scope: { clientId: null, projectId: null, timeRange: '30d' },
+        confidence: 0.9,
+        summary: jiraSummary(),
+        headline: jiraHeadline(),
       };
       session.pendingClarification = null;
       await streamIntent(session, stream, intent, body.requestId, false);
@@ -316,6 +333,7 @@ sessionRouter.post('/session/:id/home', async (req, res, next) => {
   session.pinned.clear();
   session.dismissed.clear();
   session.preferredViz = null;
+  session.jiraFocus = false;
   session.pendingClarification = null;
   await persistPrefs(session);
   await exclusive(session, res, next, (signal) =>

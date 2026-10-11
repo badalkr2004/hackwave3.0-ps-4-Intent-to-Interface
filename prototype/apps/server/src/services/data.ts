@@ -33,25 +33,32 @@ function createContext(
   today: Date,
   allowedClientIds: readonly string[] | null,
   organizationId: string | null,
+  userId: string | null,
 ): LoadContext {
   const memo = new Map<string, Promise<unknown>>();
+  const once = <T,>(key: string, fn: () => Promise<T>): Promise<T> => {
+    let p = memo.get(key) as Promise<T> | undefined;
+    if (!p) {
+      p = fn();
+      memo.set(key, p);
+    }
+    return p;
+  };
+
+  const load = <K extends ComponentId>(id: K): Promise<PanelProps<K> | null> => {
+    const mod = REGISTRY[id] as RegistryModule<K>;
+    return once(`module:${id}`, () => runLoader(mod, ctx));
+  };
+
   const ctx: LoadContext = {
     db,
     scope,
     today,
     allowedClientIds,
     organizationId,
-    once<T>(key: string, fn: () => Promise<T>): Promise<T> {
-      let p = memo.get(key) as Promise<T> | undefined;
-      if (!p) {
-        p = fn();
-        memo.set(key, p);
-      }
-      return p;
-    },
-    load<K extends ComponentId>(id: K): Promise<PanelProps<K> | null> {
-      return ctx.once(`module:${id}`, () => runLoader(REGISTRY[id] as RegistryModule<K>, ctx));
-    },
+    userId,
+    once,
+    load,
   };
   return ctx;
 }
@@ -86,6 +93,7 @@ export function loadScopeData(
   today: Date,
   allowedClientIds: readonly string[] | null = null,
   organizationId: string | null = null,
+  userId: string | null = null,
 ): Promise<ScopeData> {
   const key = JSON.stringify([
     db.schema,
@@ -95,12 +103,13 @@ export function loadScopeData(
     toISODate(today),
     allowedClientIds ? [...allowedClientIds].sort() : null,
     organizationId,
+    userId,
   ]);
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.data;
 
   const data = (async () => {
-    const ctx = createContext(db, scope, today, allowedClientIds, organizationId);
+    const ctx = createContext(db, scope, today, allowedClientIds, organizationId, userId);
     const ids = Object.keys(REGISTRY).filter(isComponentId);
     const loaded = await Promise.all(ids.map(async (id) => [id, await ctx.load(id)] as const));
     return { ctx, props: Object.fromEntries(loaded) as ScopeData['props'] };

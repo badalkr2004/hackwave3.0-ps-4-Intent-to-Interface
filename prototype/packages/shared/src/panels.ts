@@ -291,6 +291,33 @@ export const ActionBarProps = z.object({
   ),
 });
 
+export const JiraTicketsProps = z.object({
+  connected: z.boolean(),
+  baseUrl: z.string().nullable(),
+  projectKey: z.string().nullable(),
+  displayName: z.string().nullable(),
+  issues: z.array(
+    z.object({
+      key: z.string(),
+      id: z.string(),
+      summary: z.string(),
+      status: z.string(),
+      statusCategory: z.string(),
+      priority: z.string().nullable(),
+      issueType: z.string(),
+      assignee: z.string().nullable(),
+      updated: z.string(),
+      created: z.string(),
+      url: z.string(),
+    }),
+  ),
+  total: z.number(),
+  openCount: z.number(),
+  highCount: z.number(),
+  /** True when the user explicitly asked about Jira (compose boost). */
+  focused: z.boolean().default(false),
+});
+
 export const PANEL_PROPS = {
   portfolio_health: PortfolioHealthProps,
   upcoming_meetings: UpcomingMeetingsProps,
@@ -307,6 +334,7 @@ export const PANEL_PROPS = {
   blocker_chain: BlockerChainProps,
   workload_bars: WorkloadBarsProps,
   sales_pulse: SalesPulseProps,
+  jira_tickets: JiraTicketsProps,
   action_bar: ActionBarProps,
 } as const;
 

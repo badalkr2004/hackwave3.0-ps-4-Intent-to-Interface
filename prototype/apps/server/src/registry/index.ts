@@ -5,6 +5,7 @@ import blocker_chain from './blocker_chain';
 import client_snapshot from './client_snapshot';
 import comms_timeline from './comms_timeline';
 import hypothesis_list from './hypothesis_list';
+import jira_tickets from './jira_tickets';
 import last_meeting_recap from './last_meeting_recap';
 import open_issues from './open_issues';
 import overdue_queue from './overdue_queue';
@@ -33,5 +34,6 @@ export const REGISTRY: { [K in ComponentId]: RegistryModule<K> } = {
   blocker_chain,
   workload_bars,
   sales_pulse,
+  jira_tickets,
   action_bar,
 };

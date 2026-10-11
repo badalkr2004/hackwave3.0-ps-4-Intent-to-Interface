@@ -16,7 +16,7 @@ import { runAuction, type ComponentData, type PlannedPanel } from './auction';
 import { generateCopy, type CopyId } from './copy';
 import { componentData, loadScopeData, type ScopeData } from './data';
 import { buildDigest, type Digest } from './digest';
-import { planNeeds, withPins, withSalesVizBoost } from './needs';
+import { planNeeds, withJiraBoost, withPins, withSalesVizBoost } from './needs';
 
 export interface DeferredJob {
   panelId: string;
@@ -58,6 +58,7 @@ async function loadData(session: Session, intent: Intent): Promise<ScopeData | n
         startOfDay(new Date()),
         session.allowedClientIds,
         session.organizationId,
+        session.userId,
       )
     : null;
 }
@@ -84,11 +85,13 @@ export async function compose(
     degraded ||= planned.degraded;
   }
   if (session.preferredViz) baseNeeds = withSalesVizBoost(baseNeeds);
+  if (session.jiraFocus) baseNeeds = withJiraBoost(baseNeeds);
   const needs = withPins(baseNeeds, session.pinned);
 
   opts.onStage?.('composing');
   const cd = data ? await componentData(data, intent.shape) : emptyData();
   applyPreferredViz(cd, session);
+  applyJiraFocus(cd, session);
   const {
     panels: planned,
     receipts,
@@ -103,6 +106,7 @@ export async function compose(
   });
 
   if (session.preferredViz) featureSalesPulse(planned);
+  if (session.jiraFocus) featureJiraTickets(planned);
 
   const deferred: DeferredJob[] = [];
   const panels: Panel[] = planned.map((p) => {
@@ -243,4 +247,46 @@ function featureSalesPulse(panels: PlannedPanel[]): void {
   sales.zone = 'center';
   sales.size = 'L';
   sales.order = 0;
+}
+
+/** Stamp focused + boost signal when the user asked about Jira. */
+function applyJiraFocus(cd: Record<string, ComponentData>, session: Session): void {
+  if (!session.jiraFocus) return;
+  const row = cd.jira_tickets;
+  if (!row?.props || typeof row.props !== 'object') {
+    cd.jira_tickets = {
+      props: {
+        connected: false,
+        baseUrl: null,
+        projectKey: null,
+        displayName: null,
+        issues: [],
+        total: 0,
+        openCount: 0,
+        highCount: 0,
+        focused: true,
+      } satisfies PanelProps<'jira_tickets'>,
+      signal: 0.95,
+      evidence: ['Connect Jira to load live tickets'],
+    };
+    return;
+  }
+  const props = {
+    ...(row.props as PanelProps<'jira_tickets'>),
+    focused: true,
+  };
+  cd.jira_tickets = {
+    ...row,
+    props,
+    signal: Math.max(row.signal, 0.95),
+  };
+}
+
+/** Center-stage Jira tickets when the user explicitly asked for them. */
+function featureJiraTickets(panels: PlannedPanel[]): void {
+  const jira = panels.find((p) => p.componentId === 'jira_tickets');
+  if (!jira) return;
+  jira.zone = 'center';
+  jira.size = 'L';
+  jira.order = 0;
 }

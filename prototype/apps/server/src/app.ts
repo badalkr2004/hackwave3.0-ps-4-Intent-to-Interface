@@ -6,6 +6,7 @@ import { auth } from './auth';
 import { env } from './env';
 import { log } from './log';
 import { actionsRouter } from './routes/actions';
+import { connectorsRouter } from './routes/connectors';
 import { healthRouter } from './routes/health';
 import { meRouter } from './routes/me';
 import { orgsRouter } from './routes/orgs';
@@ -34,6 +35,7 @@ export function createApp(): express.Express {
   app.use('/api', healthRouter);
   app.use('/api', meRouter);
   app.use('/api', orgsRouter);
+  app.use('/api', connectorsRouter);
   app.use('/api', sessionRouter);
   app.use('/api', actionsRouter);
 

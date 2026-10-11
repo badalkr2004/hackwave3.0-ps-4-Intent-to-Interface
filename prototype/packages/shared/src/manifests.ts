@@ -180,6 +180,17 @@ export const MANIFESTS: readonly ComponentManifest[] = [
     place('R4', 'R5', 'R6', 'R6'),
   ),
   manifest(
+    'jira_tickets',
+    'Jira tickets',
+    'What is happening in Jira?',
+    [
+      ['jira_tickets', 1],
+      ['open_issues', 0.45],
+    ],
+    ['S', 'M', 'L'],
+    place('C3', 'R2', 'R3', 'C3'),
+  ),
+  manifest(
     'action_bar',
     'Actions',
     'What can I do now?',

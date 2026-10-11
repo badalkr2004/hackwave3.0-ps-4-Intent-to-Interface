@@ -18,6 +18,7 @@ export const NEED_QUESTIONS: Record<NeedType, string> = {
   capacity: 'Who has capacity?',
   available_actions: 'What can I do now?',
   sales_pulse: 'How is sales and marketing performing?',
+  jira_tickets: 'What is happening in Jira?',
 };
 
 export const SHAPE_TEMPLATES: Record<Shape, Partial<Record<NeedType, number>>> = {
@@ -28,6 +29,7 @@ export const SHAPE_TEMPLATES: Record<Shape, Partial<Record<NeedType, number>>> =
     usage_trend: 0.6,
     overdue_work: 0.55,
     sales_pulse: 0.72,
+    jira_tickets: 0.42,
     available_actions: 0.3,
   },
   prepare: {
@@ -37,6 +39,7 @@ export const SHAPE_TEMPLATES: Record<Shape, Partial<Record<NeedType, number>>> =
     open_issues: 0.8,
     talking_points: 0.95,
     usage_trend: 0.75,
+    jira_tickets: 0.55,
     available_actions: 0.6,
   },
   diagnose: {
@@ -47,6 +50,7 @@ export const SHAPE_TEMPLATES: Record<Shape, Partial<Record<NeedType, number>>> =
     anomaly_localization: 0.9,
     change_correlation: 0.85,
     root_cause_hypotheses: 0.9,
+    jira_tickets: 0.5,
     available_actions: 0.55,
   },
   triage: {
@@ -55,6 +59,7 @@ export const SHAPE_TEMPLATES: Record<Shape, Partial<Record<NeedType, number>>> =
     overdue_work: 0.95,
     blockers: 0.9,
     capacity: 0.8,
+    jira_tickets: 0.62,
     available_actions: 0.7,
   },
 };

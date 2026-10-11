@@ -13,9 +13,9 @@ import {
 const SIZE_ORDER = ['S', 'M', 'L'] as const;
 
 describe('component manifests', () => {
-  it('declares exactly the 16 registry components', () => {
-    expect(MANIFESTS).toHaveLength(16);
-    expect(new Set(MANIFESTS.map((m) => m.id)).size).toBe(16);
+  it('declares exactly the 17 registry components', () => {
+    expect(MANIFESTS).toHaveLength(17);
+    expect(new Set(MANIFESTS.map((m) => m.id)).size).toBe(17);
   });
 
   it('every manifest parses with the shared schema', () => {

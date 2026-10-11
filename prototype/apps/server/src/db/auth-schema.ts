@@ -162,6 +162,18 @@ export const organizationAuditLog = appSchema.table('organization_audit_log', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export type StoredConnectors = {
+  jira?: {
+    baseUrl: string;
+    email: string;
+    projectKey?: string;
+    /** Optional override; when omitted the server uses JIRA_API_KEY from env. */
+    apiToken?: string;
+    displayName?: string;
+    connectedAt: string;
+  };
+};
+
 export const userWorkspacePrefs = appSchema.table('user_workspace_prefs', {
   userId: text('user_id')
     .primaryKey()
@@ -171,6 +183,7 @@ export const userWorkspacePrefs = appSchema.table('user_workspace_prefs', {
   activeOrganizationId: text('active_organization_id').references(() => organization.id, {
     onDelete: 'set null',
   }),
+  connectors: jsonb('connectors').$type<StoredConnectors>().notNull().default({}),
   updatedAt: timestamp('updated_at')
     .defaultNow()
     .$onUpdate(() => new Date())
