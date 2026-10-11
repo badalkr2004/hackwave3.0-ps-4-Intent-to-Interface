@@ -6,6 +6,26 @@ import { panelHeadingId } from './ids';
 import { PanelBody } from './PanelBody';
 import { WhyOverlay, WhyPopover } from './WhyOverlay';
 
+/** Precision category eyebrows — contextual domain labels above each panel title. */
+const PANEL_CATEGORY: Record<string, string> = {
+  portfolio_health: 'Portfolio vitals',
+  usage_trend: 'Engagement & retention',
+  segment_breakdown: 'Anomaly analysis',
+  open_issues: 'Unresolved escalations',
+  overdue_queue: 'Delivery committed',
+  upcoming_meetings: 'Schedule & reviews',
+  client_snapshot: 'Client context',
+  last_meeting_recap: 'Prior commitments',
+  release_strip: 'Change timeline',
+  workload_bars: 'Team capacity',
+  comms_timeline: 'Communication log',
+  hypothesis_list: 'Root cause analysis',
+  talking_points: 'Meeting preparation',
+  blocker_chain: 'Dependency risks',
+  sales_pulse: 'Revenue pipeline',
+  action_bar: 'Available actions',
+};
+
 /** FNV-1a; only needs to change when the content changes. */
 function hashString(s: string): string {
   let h = 0x811c9dc5;
@@ -130,8 +150,13 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
       data-panel-id={panel.id}
       className={`group flex flex-col overflow-hidden sheet ${panel.size === 'L' ? 'panel-rule-l' : ''} ${SIZE_CLASSES[panel.size]}`}
     >
-      <header className="flex items-start gap-2 px-4 pt-3">
+      <header className="flex items-start gap-2 px-4 pt-3 pb-2.5 border-b border-border/40">
         <div className="min-w-0 flex-1">
+          {PANEL_CATEGORY[panel.componentId] && (
+            <p className="mb-1 text-[10px] font-semibold tracking-[0.12em] text-muted/70 uppercase">
+              {PANEL_CATEGORY[panel.componentId]}
+            </p>
+          )}
           <h2
             id={headingId}
             tabIndex={-1}

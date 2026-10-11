@@ -35,33 +35,96 @@ function weeklyRows(series: Point[]) {
   return rows;
 }
 
-function Sparkline({ series }: { series: Point[] }) {
-  const values = series.map((p) => p.value);
+/** Compute a monotone-cubic Bézier path string for sparkline smoothness. */
+function buildSparkPath(values: number[], w = 100, h = 30, padY = 1): string {
+  if (values.length < 2) return '';
   const max = Math.max(...values);
   const min = Math.min(...values);
   const span = max - min || 1;
-  const points = values
-    .map(
-      (v, i) => `${(i / Math.max(1, values.length - 1)) * 100},${30 - ((v - min) / span) * 28 - 1}`,
-    )
-    .join(' ');
+  const pts = values.map((v, i) => ({
+    x: (i / Math.max(1, values.length - 1)) * w,
+    y: h - padY - ((v - min) / span) * (h - 2 * padY),
+  }));
+  let d = `M${pts[0]!.x},${pts[0]!.y}`;
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1]!;
+    const cur = pts[i]!;
+    const cpx = (prev.x + cur.x) / 2;
+    d += ` C${cpx},${prev.y} ${cpx},${cur.y} ${cur.x},${cur.y}`;
+  }
+  return d;
+}
+
+function Sparkline({ series }: { series: Point[] }) {
+  const values = series.map((p) => p.value);
+  const d = buildSparkPath(values);
+  const lastPt = values.length
+    ? {
+        x: 100,
+        y:
+          30 -
+          1 -
+          ((values[values.length - 1]! - Math.min(...values)) /
+            (Math.max(...values) - Math.min(...values) || 1)) *
+            28,
+      }
+    : null;
+
   return (
     <svg
       aria-hidden
       viewBox="0 0 100 30"
       preserveAspectRatio="none"
-      className="h-8 w-full text-accent"
+      className="h-8 w-full"
     >
-      <polyline
-        points={points}
+      <defs>
+        <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.18" />
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      {/* area fill */}
+      <path
+        d={`${d} L100,30 L0,30 Z`}
+        fill="url(#spark-fill)"
+      />
+      {/* line */}
+      <path
+        d={d}
         fill="none"
-        stroke="currentColor"
+        stroke="var(--accent)"
         strokeWidth="1.5"
         vectorEffect="non-scaling-stroke"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
+      {/* end dot */}
+      {lastPt && (
+        <circle
+          cx={lastPt.x}
+          cy={lastPt.y}
+          r="1.5"
+          fill="var(--accent)"
+          vectorEffect="non-scaling-stroke"
+        >
+          <animate
+            attributeName="r"
+            values="1.5;2.5;1.5"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+          <animate
+            attributeName="opacity"
+            values="1;0.5;1"
+            dur="2s"
+            repeatCount="indefinite"
+          />
+        </circle>
+      )}
     </svg>
   );
 }
+
 
 function EndDot(props: {
   cx?: number;

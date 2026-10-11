@@ -19,6 +19,7 @@ import { StackChip } from './shell/StackChip';
 import { WhyDrawer } from './shell/WhyDrawer';
 import { WhyToggle } from './shell/WhyToggle';
 import { ZoneGrid } from './shell/ZoneGrid';
+import { VitalsBar } from './shell/VitalsBar';
 import { useWorkspace } from './store/workspace';
 import type { OrgSummary } from './lib/orgApi';
 
@@ -141,11 +142,11 @@ function WorkspaceApp({
       </a>
 
       <div className="content-shell mx-auto flex min-h-screen w-full flex-col px-5 pt-5 pb-28 sm:pb-10">
-        <header className="flex items-center justify-between gap-3 border-b border-border pb-4">
+        <header className="flex items-center justify-between gap-3 border-b border-border/60 pb-3">
           <div className="min-w-0">
-            <p className="font-display text-xl tracking-tight text-text sm:text-2xl">Gestalt</p>
+            <p className="font-display text-xl tracking-[-0.02em] text-text sm:text-2xl">Gestalt</p>
             {activeOrg && (
-              <p className="mt-0.5 truncate text-13 text-muted">{activeOrg.name}</p>
+              <p className="mt-0.5 truncate text-[11px] font-medium tracking-[0.04em] text-muted uppercase">{activeOrg.name}</p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -187,6 +188,7 @@ function WorkspaceApp({
               <DiffRibbon key={`${s.spec.id}:${s.spec.version}`} spec={s.spec} />
             )}
           </div>
+          <VitalsBar spec={s.spec ?? null} />
         </div>
 
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface px-5 py-3 sm:static sm:z-0 sm:mt-5 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">

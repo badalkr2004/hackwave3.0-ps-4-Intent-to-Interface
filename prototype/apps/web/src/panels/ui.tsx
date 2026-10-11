@@ -40,7 +40,7 @@ export function StatusBadge({
 }) {
   return (
     <span
-      className={`inline-flex h-6 shrink-0 items-center gap-1 rounded-sm px-2 text-xs font-medium whitespace-nowrap ${TONE_CLASSES[tone]}`}
+      className={`inline-flex h-6 shrink-0 items-center gap-1 rounded-sm border border-current/10 px-2 text-xs font-medium tracking-wide whitespace-nowrap ${TONE_CLASSES[tone]}`}
     >
       {Icon && <Icon aria-hidden className="size-3.5" />}
       {children}
@@ -291,11 +291,14 @@ export function Meter({
   }[tone];
   const pct = Math.max(0, Math.min(100, (value / max) * 100));
   return (
-    <div aria-hidden className="relative h-2 w-full rounded-full bg-surface-2">
-      <div className={`h-full rounded-full ${fill}`} style={{ width: `${pct}%` }} />
+    <div aria-hidden className="relative h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+      <div
+        className={`h-full rounded-full transition-all duration-500 ease-out ${fill}`}
+        style={{ width: `${pct}%` }}
+      />
       {marker !== undefined && (
         <div
-          className="absolute -top-1 h-4 w-0.5 bg-text"
+          className="absolute -top-0.5 h-2.5 w-px bg-text/60"
           style={{ left: `${Math.min(100, (marker / max) * 100)}%` }}
         />
       )}

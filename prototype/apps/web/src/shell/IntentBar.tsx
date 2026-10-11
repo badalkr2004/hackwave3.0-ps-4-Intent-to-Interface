@@ -142,7 +142,7 @@ export function IntentBar({
             aria-describedby={error ? `${hintId} ${errorId}` : hintId}
             aria-invalid={error ? true : undefined}
             autoComplete="off"
-            className="h-14 w-full rounded-lg border border-border bg-surface pr-14 pl-4 text-md text-text shadow-panel transition-colors duration-150 placeholder:text-muted focus-visible:border-focus"
+            className="h-14 w-full rounded-lg border border-border bg-surface pr-14 pl-4 text-md text-text shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] transition-all duration-150 placeholder:text-muted focus-visible:border-focus focus-visible:ring-1 focus-visible:ring-focus/30"
           />
           <span
             aria-hidden

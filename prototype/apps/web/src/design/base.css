@@ -167,11 +167,22 @@
     border: 0;
   }
 
-  /* Hairline border only — no shadow on panels (SPEC: border OR shadow, not both). */
+  /* Precision sheet — hairline border + subtle layered shadow for editorial depth. */
   .sheet {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 0 0 0.5px rgba(0, 0, 0, 0.03);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .sheet:hover {
+    border-color: var(--border-strong);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.06),
+      0 0 0 0.5px rgba(0, 0, 0, 0.04);
   }
 
   /* Enterprise auth / onboarding: atmospheric brand plane + calm form column. */
