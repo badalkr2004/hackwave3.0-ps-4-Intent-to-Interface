@@ -6,6 +6,8 @@ You type a goal (“Prepare me for Acme tomorrow”). Gestalt parses intent into
 
 Hackathon PS 4 (Human-Centered AI). Non-goals for this build: authentication, multi-tenant SaaS, real Slack/CRM integrations. Those are the next phase (Better Auth + Drizzle on Neon).
 
+Hackathon PS 4 (Human-Centered AI). Non-goals for this build: authentication, multi-tenant SaaS, real Slack/CRM integrations. Those are the next phase (Better Auth + Drizzle on Neon).
+
 ---
 
 ## Quick start
