@@ -7,8 +7,12 @@ export default defineConfig({
   envDir: '../..',
   server: {
     port: 5173,
+    // Allow ngrok / LAN / any tunnel host while testing on multiple devices
+    host: true,
+    allowedHosts: true,
     proxy: {
       '/api': { target: 'http://localhost:8787', changeOrigin: true },
     },
   },
 });
+

@@ -651,6 +651,11 @@
   .chat-block-in {
     animation: none !important;
   }
+
+  .gestalt-chat-motion,
+  .gestalt-chat-motion * {
+    transition: none !important;
+  }
 }
 
 /* Chat markdown / disposable cards */
