@@ -600,3 +600,71 @@
     top: 64%;
   }
 }
+
+/* Floating Gestalt chat — streaming caret + panel enter */
+@keyframes chat-caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes chat-block-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-caret {
+  display: inline-block;
+  width: 0.45em;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  background: var(--accent, #e85d04);
+  animation: chat-caret-blink 0.9s step-end infinite;
+}
+
+.chat-block-in {
+  animation: chat-block-in 0.35s ease-out both;
+}
+
+.chat-block-in:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.chat-block-in:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-caret,
+  .chat-block-in {
+    animation: none !important;
+  }
+}
+
+/* Chat markdown / disposable cards */
+.chat-md > :first-child {
+  margin-top: 0;
+}
+.chat-md > :last-child {
+  margin-bottom: 0;
+}
+.chat-md .chat-card,
+.chat-md .ticket-card {
+  background: var(--surface, transparent);
+}
+.chat-md-pre code {
+  background: transparent;
+  padding: 0;
+}

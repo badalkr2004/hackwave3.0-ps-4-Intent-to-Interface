@@ -1,0 +1,74 @@
+[
+  {
+    "id": "mom:vertex-latency",
+    "title": "Vertex alert latency review",
+    "text": "Meeting with Vertex about alert latency. Decision: ship dashboard sampling fix before Friday. Action: Elena owns the release notes.",
+    "source_type": "mom",
+    "org_id": "org_helios",
+    "client_id": "vertex",
+    "date": "2026-10-06",
+    "ticket_id": null,
+    "tags": ["meeting", "latency"],
+    "access_tier": "public"
+  },
+  {
+    "id": "jira:VTX-21",
+    "title": "VTX-21 alert pipeline stall",
+    "text": "Bug ticket VTX-21: alert pipeline stalls under burst load. Tags: bug, technical, backend. Priority high.",
+    "source_type": "jira",
+    "org_id": "org_helios",
+    "client_id": "vertex",
+    "date": "2026-10-05",
+    "ticket_id": "VTX-21",
+    "tags": ["bug", "technical", "backend"],
+    "access_tier": "engineering"
+  },
+  {
+    "id": "usage:vertex-drop",
+    "title": "Vertex usage drop analysis",
+    "text": "Vertex weekly active seats dropped 18% after the latency incident. Drop concentrated in Alerts module. Correlate with VTX-21.",
+    "source_type": "usage",
+    "org_id": "org_helios",
+    "client_id": "vertex",
+    "date": "2026-10-09",
+    "ticket_id": null,
+    "tags": ["usage", "diagnose"],
+    "access_tier": "public"
+  },
+  {
+    "id": "sales:vertex-renewal",
+    "title": "Vertex renewal risk (management)",
+    "text": "Management note: Vertex ARR $310k renews in 60 days. Risk elevated due to alert reliability. Executive briefing prepared.",
+    "source_type": "sales",
+    "org_id": "org_helios",
+    "client_id": "vertex",
+    "date": "2026-10-07",
+    "ticket_id": null,
+    "tags": ["renewal", "arr"],
+    "access_tier": "management"
+  },
+  {
+    "id": "overdue:oakmont-tasks",
+    "title": "Oakmont overdue commitments",
+    "text": "Overdue: SOC2 evidence pack (9 days), webhook retry fix (5 days). Blocker on platform capacity.",
+    "source_type": "tasks",
+    "org_id": "org_helios",
+    "client_id": "oakmont",
+    "date": "2026-10-10",
+    "ticket_id": null,
+    "tags": ["overdue", "triage"],
+    "access_tier": "public"
+  },
+  {
+    "id": "jira:OAK-4",
+    "title": "OAK-4 webhook retries",
+    "text": "Technical bug OAK-4: webhook retries drop after 3 attempts. Tags: bug, technical, api.",
+    "source_type": "jira",
+    "org_id": "org_helios",
+    "client_id": "oakmont",
+    "date": "2026-10-04",
+    "ticket_id": "OAK-4",
+    "tags": ["bug", "technical", "api"],
+    "access_tier": "engineering"
+  }
+]

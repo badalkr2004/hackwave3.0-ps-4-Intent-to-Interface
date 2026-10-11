@@ -43,6 +43,7 @@ actionsRouter.post('/actions/draft-email', async (req, res, next) => {
       session.allowedClientIds,
       session.organizationId,
       session.userId,
+      session.accessRole,
     );
     const draft = await draftEmail(body.kind, await buildDigest(data.ctx), scope.clientId);
     res.json({ subject: draft.subject, body: draft.body } satisfies DraftEmailResponse);

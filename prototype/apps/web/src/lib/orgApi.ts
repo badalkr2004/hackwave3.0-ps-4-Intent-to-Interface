@@ -1,8 +1,11 @@
+export type AccessRole = 'manager' | 'developer' | 'intern';
+
 export type OrgSummary = {
   id: string;
   name: string;
   slug: string;
   role: 'owner' | 'admin' | 'member';
+  accessRole?: AccessRole;
 };
 
 export type MomItem = {
@@ -61,6 +64,7 @@ export async function fetchMe(): Promise<{
   user: { id: string; name: string; email: string } | null;
   orgs: OrgSummary[];
   activeOrganizationId: string | null;
+  accessRole?: AccessRole | null;
 }> {
   return json('/api/me');
 }

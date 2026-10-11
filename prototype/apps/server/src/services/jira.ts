@@ -134,15 +134,29 @@ export async function listProjects(creds: JiraCredentials): Promise<JiraProject[
   return list.map((p) => ({ id: p.id, key: p.key, name: p.name }));
 }
 
+export type JiraSearchOpts = {
+  projectKey?: string;
+  maxResults?: number;
+  /** open | done | all — maps to statusCategory */
+  status?: 'open' | 'done' | 'all';
+};
+
+function buildJql(opts?: JiraSearchOpts): string {
+  const project = opts?.projectKey?.trim();
+  const parts: string[] = [];
+  if (project) parts.push(`project = "${project.replace(/"/g, '\\"')}"`);
+  if (opts?.status === 'open') parts.push('statusCategory != Done');
+  else if (opts?.status === 'done') parts.push('statusCategory = Done');
+  const where = parts.length ? `${parts.join(' AND ')} ` : '';
+  return `${where}ORDER BY updated DESC`;
+}
+
 export async function searchRecentIssues(
   creds: JiraCredentials,
-  opts?: { projectKey?: string; maxResults?: number },
+  opts?: JiraSearchOpts,
 ): Promise<JiraIssue[]> {
   const maxResults = opts?.maxResults ?? 15;
-  const project = opts?.projectKey?.trim();
-  const jql = project
-    ? `project = "${project.replace(/"/g, '\\"')}" ORDER BY updated DESC`
-    : 'ORDER BY updated DESC';
+  const jql = buildJql(opts);
 
   type SearchPayload = {
     issues?: Array<Parameters<typeof mapIssue>[1]>;

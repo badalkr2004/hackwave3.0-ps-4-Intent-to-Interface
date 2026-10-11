@@ -1,6 +1,7 @@
 import type { ComponentId, PanelProps, Scope, Shape } from '@gestalt/shared';
 import type { Db } from '../db/client';
 import { addDays, toISODate } from '../lib/dates';
+import type { AccessRole } from '../services/accessPolicy';
 
 export interface LoadContext {
   // SPEC-NOTE: the spec passes `sql`; loaders get a schema-bound Db so every table reference is
@@ -17,6 +18,8 @@ export interface LoadContext {
   organizationId: string | null;
   /** Signed-in user — connectors (Jira) are per-user. Null when auth is off. */
   userId: string | null;
+  /** Job/data access role; null when auth off (treated as full manager). */
+  accessRole: AccessRole | null;
   /** Memoizes shared sub-queries (e.g. usage analysis) across loaders within one loadAll call. */
   once<T>(key: string, fn: () => Promise<T>): Promise<T>;
   /** Another module's props for the same scope (memoized), e.g. for deferred panels' digests. */

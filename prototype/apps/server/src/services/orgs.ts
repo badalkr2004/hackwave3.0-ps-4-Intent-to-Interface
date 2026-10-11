@@ -12,6 +12,7 @@ import {
 } from '../db/auth-schema';
 import { getDrizzle } from '../db/drizzle';
 import { getDb } from '../db/client';
+import type { AccessRole } from './accessPolicy';
 import { writeAudit } from './audit';
 import { clearDataCache } from './data';
 import { parseMom } from './momParse';
@@ -35,6 +36,7 @@ export interface OrgSummary {
   name: string;
   slug: string;
   role: OrgRole;
+  accessRole: AccessRole;
 }
 
 function dbOrThrow() {
@@ -51,11 +53,16 @@ export async function listOrgsForUser(userId: string): Promise<OrgSummary[]> {
       name: organization.name,
       slug: organization.slug,
       role: organizationMember.role,
+      accessRole: organizationMember.accessRole,
     })
     .from(organizationMember)
     .innerJoin(organization, eq(organization.id, organizationMember.organizationId))
     .where(eq(organizationMember.userId, userId));
-  return rows.map((r) => ({ ...r, role: r.role as OrgRole }));
+  return rows.map((r) => ({
+    ...r,
+    role: r.role as OrgRole,
+    accessRole: (r.accessRole ?? 'manager') as AccessRole,
+  }));
 }
 
 export async function getActiveOrgId(userId: string): Promise<string | null> {
@@ -127,6 +134,7 @@ export async function createOrg(userId: string, name: string): Promise<OrgSummar
     organizationId: orgId,
     userId,
     role: 'owner',
+    accessRole: 'manager',
   });
   // New orgs start with no clients — portfolio is assigned explicitly (seed or admin),
   // never the shared demo set.
@@ -139,7 +147,7 @@ export async function createOrg(userId: string, name: string): Promise<OrgSummar
     entityId: orgId,
     detail: { name: trimmed, slug },
   });
-  return { id: orgId, name: trimmed, slug, role: 'owner' };
+  return { id: orgId, name: trimmed, slug, role: 'owner', accessRole: 'manager' };
 }
 
 /** Link specific client ids to an organization (idempotent). */
@@ -202,6 +210,7 @@ export async function joinWithCode(userId: string, code: string): Promise<OrgSum
       organizationId: inv.organizationId,
       userId,
       role: inv.role,
+      accessRole: 'intern',
     });
   }
   await setActiveOrg(userId, inv.organizationId);
@@ -221,12 +230,32 @@ export async function joinWithCode(userId: string, code: string): Promise<OrgSum
       detail: { role: inv.role, via: 'invite' },
     });
   }
+  const accessRole = (await memberAccessRole(userId, inv.organizationId)) ?? 'intern';
   return {
     id: org.id,
     name: org.name,
     slug: org.slug,
     role: existing ?? (inv.role as OrgRole),
+    accessRole,
   };
+}
+
+export async function memberAccessRole(
+  userId: string,
+  organizationId: string,
+): Promise<AccessRole | null> {
+  const db = dbOrThrow();
+  const [row] = await db
+    .select({ accessRole: organizationMember.accessRole })
+    .from(organizationMember)
+    .where(
+      and(
+        eq(organizationMember.userId, userId),
+        eq(organizationMember.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  return (row?.accessRole as AccessRole | undefined) ?? null;
 }
 
 export async function listMembers(organizationId: string, userId: string) {
@@ -237,6 +266,7 @@ export async function listMembers(organizationId: string, userId: string) {
       id: organizationMember.id,
       userId: organizationMember.userId,
       role: organizationMember.role,
+      accessRole: organizationMember.accessRole,
       createdAt: organizationMember.createdAt,
     })
     .from(organizationMember)
@@ -371,6 +401,26 @@ export async function ingestMom(input: IngestMomInput) {
       actionItems: actionItems.length,
     },
   });
+
+  // Optional RAG sidecar — never blocks or fails MoM write.
+  try {
+    const { ragIngestFireAndForget } = await import('./ragClient');
+    ragIngestFireAndForget([
+      {
+        id: `mom:${momId}`,
+        title: parsed.title,
+        text: raw.slice(0, 12_000),
+        source_type: 'mom',
+        org_id: input.organizationId,
+        client_id: input.clientId,
+        date: heldAt.toISOString().slice(0, 10),
+        tags: ['meeting', 'mom'],
+        access_tier: 'public',
+      },
+    ]);
+  } catch {
+    /* isolation: ignore */
+  }
 
   return {
     id: momId,

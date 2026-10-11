@@ -81,6 +81,11 @@ export const organizationMember = appSchema.table('organization_member', {
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   role: text('role').$type<'owner' | 'admin' | 'member'>().notNull(),
+  /** Data/dashboard scope — separate from org governance `role`. */
+  accessRole: text('access_role')
+    .$type<'manager' | 'developer' | 'intern'>()
+    .notNull()
+    .default('manager'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

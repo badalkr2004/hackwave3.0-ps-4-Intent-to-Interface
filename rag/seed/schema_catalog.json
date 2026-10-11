@@ -1,0 +1,26 @@
+[
+  {
+    "id": "schema:org_northwind",
+    "title": "Gestalt database schema — Northwind",
+    "text": "Gestalt Postgres schema for answering with structured data. clients(id, name, plan, arr, health, csm_id, renewal_date, contact_name, contact_title). meetings(id, client_id, date, kind, title, notes, commitments json). meeting_minutes(id, organization_id, client_id, title, held_at, raw_text, summary, decisions, action_items, attendees, source) — org MoM archive. org_action_item(id, organization_id, meeting_minutes_id, client_id, text, owner, due, status). tickets(id, client_id, title, status, priority, created, updated, tags json, summary) — demo engineering issues (Jira-like). usage_daily(client_id, date, dimension total|feature|team, segment, value). projects(id, name, client_id, owner_id). tasks(id, project_id, title, owner_id, due, status, depends_on, estimate_h). sales_opportunity(organization_id, client_id, name, stage, amount, probability, owner, expected_close, source_channel). communications(client_id, channel, date, snippet, sentiment). When the user asks about current tickets, meetings, usage numbers, overdue work, or pipeline, prefer LIVE SQL snapshots over outdated narrative alone. Org id: org_northwind. Clients include acme, globex, initech, umbrella.",
+    "source_type": "schema",
+    "org_id": "org_northwind",
+    "client_id": "",
+    "date": "2026-10-11",
+    "ticket_id": null,
+    "tags": ["schema", "database", "sql"],
+    "access_tier": "public"
+  },
+  {
+    "id": "schema:org_helios",
+    "title": "Gestalt database schema — Helios",
+    "text": "Gestalt Postgres schema for answering with structured data. clients(id, name, plan, arr, health, csm_id, renewal_date, contact_name, contact_title). meetings(id, client_id, date, kind, title, notes, commitments json). meeting_minutes(id, organization_id, client_id, title, held_at, raw_text, summary, decisions, action_items, attendees, source) — org MoM archive. org_action_item(id, organization_id, meeting_minutes_id, client_id, text, owner, due, status). tickets(id, client_id, title, status, priority, created, updated, tags json, summary) — demo engineering issues (Jira-like). usage_daily(client_id, date, dimension total|feature|team, segment, value). projects(id, name, client_id, owner_id). tasks(id, project_id, title, owner_id, due, status, depends_on, estimate_h). sales_opportunity(organization_id, client_id, name, stage, amount, probability, owner, expected_close, source_channel). communications(client_id, channel, date, snippet, sentiment). When the user asks about current tickets, meetings, usage numbers, overdue work, or pipeline, prefer LIVE SQL snapshots over outdated narrative alone. Org id: org_helios. Clients include vertex, oakmont, pulse.",
+    "source_type": "schema",
+    "org_id": "org_helios",
+    "client_id": "",
+    "date": "2026-10-11",
+    "ticket_id": null,
+    "tags": ["schema", "database", "sql"],
+    "access_tier": "public"
+  }
+]

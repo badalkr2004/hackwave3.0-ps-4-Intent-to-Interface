@@ -33,6 +33,31 @@ export const HELIOS = {
 
 export const DEMO_TENANTS = [NORTHWIND, HELIOS] as const;
 
+/** Extra Northwind users for access-role demo (same password as DEMO_PASSWORD). */
+export const NORTHWIND_ACCESS_USERS = [
+  {
+    userId: 'user_northwind_manager',
+    email: 'manager@northwind.test',
+    userName: 'Morgan Lee',
+    orgRole: 'admin' as const,
+    accessRole: 'manager' as const,
+  },
+  {
+    userId: 'user_northwind_developer',
+    email: 'developer@northwind.test',
+    userName: 'Devon Park',
+    orgRole: 'member' as const,
+    accessRole: 'developer' as const,
+  },
+  {
+    userId: 'user_northwind_intern',
+    email: 'intern@northwind.test',
+    userName: 'Ivy Nguyen',
+    orgRole: 'member' as const,
+    accessRole: 'intern' as const,
+  },
+] as const;
+
 /**
  * Clears prior tenant scaffolding and inserts two isolated orgs with owners,
  * client links, sample MOM, and action items. Story rows must already exist.
@@ -53,10 +78,14 @@ export async function seedTenants(sql: Sql, schema: string): Promise<void> {
       RESTART IDENTITY CASCADE`;
 
     // Remove previous demo users (keep any other auth users intact).
-    for (const t of DEMO_TENANTS) {
-      await tx`DELETE FROM account WHERE user_id = ${t.userId}`;
-      await tx`DELETE FROM session WHERE user_id = ${t.userId}`;
-      await tx`DELETE FROM "user" WHERE id = ${t.userId}`;
+    const demoUserIds = [
+      ...DEMO_TENANTS.map((t) => t.userId),
+      ...NORTHWIND_ACCESS_USERS.map((u) => u.userId),
+    ];
+    for (const userId of demoUserIds) {
+      await tx`DELETE FROM account WHERE user_id = ${userId}`;
+      await tx`DELETE FROM session WHERE user_id = ${userId}`;
+      await tx`DELETE FROM "user" WHERE id = ${userId}`;
     }
 
     for (const t of DEMO_TENANTS) {
@@ -74,8 +103,8 @@ export async function seedTenants(sql: Sql, schema: string): Promise<void> {
         INSERT INTO organization (id, name, slug, created_at)
         VALUES (${t.orgId}, ${t.name}, ${t.slug}, ${now})`;
       await tx`
-        INSERT INTO organization_member (id, organization_id, user_id, role, created_at)
-        VALUES (${`mem_${t.userId}`}, ${t.orgId}, ${t.userId}, 'owner', ${now})`;
+        INSERT INTO organization_member (id, organization_id, user_id, role, access_role, created_at)
+        VALUES (${`mem_${t.userId}`}, ${t.orgId}, ${t.userId}, 'owner', 'manager', ${now})`;
       await tx`
         INSERT INTO user_workspace_prefs (user_id, pinned, dismissed, active_organization_id, updated_at)
         VALUES (${t.userId}, ${tx.json([])}, ${tx.json([])}, ${t.orgId}, ${now})`;
@@ -85,6 +114,27 @@ export async function seedTenants(sql: Sql, schema: string): Promise<void> {
           INSERT INTO organization_client (id, organization_id, client_id, created_at)
           VALUES (${oc(t.orgId, clientId)}, ${t.orgId}, ${clientId}, ${now})`;
       }
+    }
+
+    // Role-demo users on Northwind (manager / developer / intern).
+    for (const u of NORTHWIND_ACCESS_USERS) {
+      await tx`
+        INSERT INTO "user" (id, name, email, email_verified, created_at, updated_at)
+        VALUES (${u.userId}, ${u.userName}, ${u.email}, true, ${now}, ${now})`;
+      await tx`
+        INSERT INTO account (
+          id, account_id, provider_id, user_id, password, created_at, updated_at
+        ) VALUES (
+          ${`acc_${u.userId}`}, ${u.userId}, 'credential', ${u.userId}, ${password}, ${now}, ${now}
+        )`;
+      await tx`
+        INSERT INTO organization_member (id, organization_id, user_id, role, access_role, created_at)
+        VALUES (
+          ${`mem_${u.userId}`}, ${NORTHWIND.orgId}, ${u.userId}, ${u.orgRole}, ${u.accessRole}, ${now}
+        )`;
+      await tx`
+        INSERT INTO user_workspace_prefs (user_id, pinned, dismissed, active_organization_id, updated_at)
+        VALUES (${u.userId}, ${tx.json([])}, ${tx.json([])}, ${NORTHWIND.orgId}, ${now})`;
     }
 
     // Sample MOM + action items per org (categories: meetings/MoM, commitments).

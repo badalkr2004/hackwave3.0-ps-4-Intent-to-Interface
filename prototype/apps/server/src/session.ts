@@ -6,6 +6,7 @@ import {
   type UISpec,
   type VizChart,
 } from '@gestalt/shared';
+import type { AccessRole } from './services/accessPolicy';
 
 export interface Session {
   id: string;
@@ -13,6 +14,8 @@ export interface Session {
   userId: string | null;
   /** Active organization for this workspace session; null when auth is off. */
   organizationId: string | null;
+  /** Dashboard / RAG data scope for the signed-in member. */
+  accessRole: AccessRole | null;
   /**
    * Clients the session may see. `null` = unrestricted (auth disabled).
    * Empty array = signed-in org with no linked clients.
@@ -45,6 +48,7 @@ const sessions = new Map<string, Session>();
 export function createSession(opts?: {
   userId?: string | null;
   organizationId?: string | null;
+  accessRole?: AccessRole | null;
   allowedClientIds?: readonly string[] | null;
   pinned?: readonly string[];
   dismissed?: readonly string[];
@@ -54,6 +58,7 @@ export function createSession(opts?: {
     id: randomUUID(),
     userId: opts?.userId ?? null,
     organizationId: opts?.organizationId ?? null,
+    accessRole: opts?.accessRole ?? null,
     allowedClientIds: opts?.allowedClientIds ?? null,
     preferredViz: null,
     jiraFocus: false,

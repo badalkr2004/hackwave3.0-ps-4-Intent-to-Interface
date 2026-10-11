@@ -129,7 +129,19 @@ export function AuthMenu({
             <p className="truncate text-sm font-medium text-text">{user.name}</p>
             <p className="truncate text-13 text-muted">{user.email}</p>
             {org && <p className="mt-0.5 truncate text-13 text-muted">{org.name}</p>}
+            {org?.accessRole && (
+              <p className="mt-1 text-xs font-medium tracking-wide text-accent-text uppercase">
+                Access: {org.accessRole}
+              </p>
+            )}
           </div>
+          <a
+            role="menuitem"
+            href="/chat"
+            className="block px-3 py-2 text-sm text-text hover:bg-surface-2"
+          >
+            Chat
+          </a>
           <a
             role="menuitem"
             href="/org"

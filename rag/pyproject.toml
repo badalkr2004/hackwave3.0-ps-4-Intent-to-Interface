@@ -1,0 +1,32 @@
+[project]
+name = "gestalt-rag"
+version = "0.1.0"
+description = "Optional Gestalt chat RAG sidecar (FastAPI + LangChain + Chroma)"
+readme = "README.md"
+authors = [
+    { name = "Atul Sharma", email = "atulsdev18@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "chromadb>=1.5.9",
+    "fastapi>=0.143.0",
+    "langchain>=1.4.4",
+    "langchain-chroma>=1.1.0",
+    "langchain-core>=1.6.9",
+    "langchain-google-genai>=4.4.1",
+    "langchain-groq>=1.1.3",
+    "langchain-huggingface>=1.2.3",
+    "langchain-text-splitters>=1.1.3",
+    "pydantic>=2.14.0",
+    "pydantic-settings>=2.15.0",
+    "python-dotenv>=1.2.4",
+    "sentence-transformers>=6.1.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+gestalt-rag = "gestalt_rag:main"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"

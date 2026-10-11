@@ -44,6 +44,13 @@ const EnvSchema = z.object({
   JIRA_BASE_URL: z.string().url().optional(),
   JIRA_EMAIL: z.string().email().optional(),
   JIRA_PROJECT_KEY: z.string().optional(),
+  /** Optional chat RAG sidecar. Empty = chat disabled; Gestalt keeps working. */
+  RAG_SERVICE_URL: z
+    .string()
+    .url()
+    .optional()
+    .transform((v) => (v ? v.replace(/\/$/, '') : undefined)),
+  RAG_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

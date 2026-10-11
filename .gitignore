@@ -1,0 +1,9 @@
+# Root extras (Bun monorepo lives under prototype/)
+rag/.venv/
+rag/data/
+rag/.env
+rag/.env.*
+!rag/.env.example
+**/__pycache__/
+*.pyc
+.DS_Store

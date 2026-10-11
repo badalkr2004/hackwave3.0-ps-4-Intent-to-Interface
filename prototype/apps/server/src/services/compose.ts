@@ -14,6 +14,7 @@ import { startOfDay } from '../lib/dates';
 import { current, pushSpec, type Session } from '../session';
 import { runAuction, type ComponentData, type PlannedPanel } from './auction';
 import { generateCopy, type CopyId } from './copy';
+import { filterNeedsForRole } from './accessPolicy';
 import { componentData, loadScopeData, type ScopeData } from './data';
 import { buildDigest, type Digest } from './digest';
 import { planNeeds, withJiraBoost, withPins, withSalesVizBoost } from './needs';
@@ -59,6 +60,7 @@ async function loadData(session: Session, intent: Intent): Promise<ScopeData | n
         session.allowedClientIds,
         session.organizationId,
         session.userId,
+        session.accessRole,
       )
     : null;
 }
@@ -86,6 +88,7 @@ export async function compose(
   }
   if (session.preferredViz) baseNeeds = withSalesVizBoost(baseNeeds);
   if (session.jiraFocus) baseNeeds = withJiraBoost(baseNeeds);
+  baseNeeds = filterNeedsForRole(baseNeeds, session.accessRole);
   const needs = withPins(baseNeeds, session.pinned);
 
   opts.onStage?.('composing');

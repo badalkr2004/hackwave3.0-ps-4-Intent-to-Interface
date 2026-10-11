@@ -16,6 +16,7 @@ meRouter.get('/me', async (req, res) => {
       googleOAuth: false,
       orgs: [],
       activeOrganizationId: null,
+      accessRole: null,
     });
     return;
   }
@@ -27,6 +28,7 @@ meRouter.get('/me', async (req, res) => {
       googleOAuth,
       orgs: [],
       activeOrganizationId: null,
+      accessRole: null,
     });
     return;
   }
@@ -39,6 +41,7 @@ meRouter.get('/me', async (req, res) => {
   } catch {
     // Auth can be on before org migration has been applied.
   }
+  const active = orgs.find((o) => o.id === activeOrganizationId) ?? null;
   res.json({
     authEnabled: true,
     googleOAuth,
@@ -51,5 +54,6 @@ meRouter.get('/me', async (req, res) => {
     prefs,
     orgs,
     activeOrganizationId,
+    accessRole: active?.accessRole ?? null,
   });
 });

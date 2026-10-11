@@ -6,6 +6,7 @@ import { App } from './App';
 import { LoginPage } from './auth/LoginPage';
 import { OnboardPage } from './auth/OnboardPage';
 import { SignupPage } from './auth/SignupPage';
+import { ChatPage } from './chat/ChatPage';
 import { ConnectorsPage } from './connectors/ConnectorsPage';
 import { Gallery } from './gallery/Gallery';
 import { LandingPage } from './landing/LandingPage';
@@ -20,6 +21,7 @@ const path = window.location.pathname;
 function pageFor(pathname: string) {
   if (pathname === '/' || pathname === '') return <LandingPage />;
   if (pathname.startsWith('/app')) return <App />;
+  if (pathname.startsWith('/chat')) return <ChatPage />;
   if (pathname.startsWith('/gallery')) return <Gallery />;
   if (pathname.startsWith('/login')) return <LoginPage />;
   if (pathname.startsWith('/signup')) return <SignupPage />;

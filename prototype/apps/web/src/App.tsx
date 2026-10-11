@@ -22,6 +22,7 @@ import { WhyToggle } from './shell/WhyToggle';
 import { ThemeToggle } from './shell/ThemeToggle';
 import { ZoneGrid } from './shell/ZoneGrid';
 import { VitalsBar } from './shell/VitalsBar';
+import { FloatingChat } from './chat/FloatingChat';
 import { GoogleDashboardStrip } from './connectors/GoogleDashboardStrip';
 import { JiraDashboardStrip } from './connectors/JiraDashboardStrip';
 import { useWorkspace } from './store/workspace';
@@ -165,6 +166,14 @@ function WorkspaceApp({
               <FileText className="size-4 text-accent" aria-hidden />
               <span className="hidden sm:inline">Export brief</span>
             </button>
+            {activeOrg?.accessRole && (
+              <span
+                className="hidden rounded-sm bg-accent-bg px-2 py-1 text-xs font-medium tracking-wide text-accent-text uppercase sm:inline"
+                title="Organization data access role"
+              >
+                {activeOrg.accessRole}
+              </span>
+            )}
             <WhyToggle on={s.lensOn} onToggle={s.toggleLens} />
             <ThemeToggle />
             <AuthMenu activeOrg={activeOrg} onAuthChange={onAuthChange} />
@@ -297,6 +306,7 @@ function WorkspaceApp({
       <EmailDialog email={s.email} onClose={s.closeEmail} />
       <BriefDialog spec={s.spec} open={briefOpen} onClose={() => setBriefOpen(false)} />
       <Toast toast={s.toast} onDone={s.clearToast} />
+      <FloatingChat />
 
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {s.announcement}

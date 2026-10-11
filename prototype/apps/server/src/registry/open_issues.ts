@@ -1,4 +1,5 @@
 import type { Priority } from '@gestalt/shared';
+import { ticketMatchesRole } from '../services/accessPolicy';
 import { defineModule, dayOf, effectiveClientIds } from './types';
 
 export default defineModule({
@@ -30,9 +31,10 @@ export default defineModule({
       WHERE t.status = 'open'
         ${allowed ? sql`AND t.client_id = ANY(${[...allowed]})` : sql``}
       ORDER BY CASE t.priority WHEN 'high' THEN 0 WHEN 'medium' THEN 1 ELSE 2 END, t.created`;
-    const recent = rows.filter((r) => r.updated_days <= 7).length;
+    const filtered = rows.filter((r) => ticketMatchesRole(r.tags ?? [], ctx.accessRole));
+    const recent = filtered.filter((r) => r.updated_days <= 7).length;
     return {
-      tickets: rows.map((r) => ({
+      tickets: filtered.map((r) => ({
         id: r.id,
         clientId: r.client_id,
         clientName: r.client_name,
@@ -41,9 +43,9 @@ export default defineModule({
         ageDays: r.age_days,
         tags: r.tags,
       })),
-      totalOpen: rows.length,
-      highCount: rows.filter((r) => r.priority === 'high').length,
-      recentShare: rows.length ? recent / rows.length : 0,
+      totalOpen: filtered.length,
+      highCount: filtered.filter((r) => r.priority === 'high').length,
+      recentShare: filtered.length ? recent / filtered.length : 0,
     };
   },
   signal: (p) => (p.totalOpen === 0 ? 0 : 0.6 * (p.highCount / p.totalOpen) + 0.4 * p.recentShare),

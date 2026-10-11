@@ -30,7 +30,8 @@ import { SupersededError, commit, compose, composeNow, fillDeferred } from '../s
 import { loadEntities } from '../services/entities';
 import { OVERVIEW_INTENT, finalizeIntent, intentFrom, parseIntent } from '../services/intent';
 import { requestUser } from '../lib/requestUser';
-import { clientIdsForOrg, getActiveOrgId } from '../services/orgs';
+import { applyClientPolicy } from '../services/accessPolicy';
+import { clientIdsForOrg, getActiveOrgId, memberAccessRole } from '../services/orgs';
 import { loadPrefs, savePrefs } from '../services/prefs';
 import {
   createSession,
@@ -169,11 +170,14 @@ sessionRouter.post('/session', async (req, res, next) => {
         });
         return;
       }
-      const allowedClientIds = await clientIdsForOrg(organizationId);
+      const orgClientIds = await clientIdsForOrg(organizationId);
+      const accessRole = (await memberAccessRole(user.id, organizationId)) ?? 'manager';
+      const allowedClientIds = applyClientPolicy(orgClientIds, accessRole);
       const prefs = await loadPrefs(user.id);
       const session = createSession({
         userId: user.id,
         organizationId,
+        accessRole,
         allowedClientIds,
         pinned: prefs.pinned,
         dismissed: prefs.dismissed,
@@ -193,7 +197,12 @@ sessionRouter.post('/session', async (req, res, next) => {
     }
 
     // Auth disabled (local/tests): unrestricted demo portfolio.
-    const session = createSession({ userId: null, organizationId: null, allowedClientIds: null });
+    const session = createSession({
+      userId: null,
+      organizationId: null,
+      accessRole: null,
+      allowedClientIds: null,
+    });
     const [ents, spec] = await Promise.all([
       entitiesFor(session),
       composeNow(session, OVERVIEW_INTENT, { degraded: false, replaceTop: false }),

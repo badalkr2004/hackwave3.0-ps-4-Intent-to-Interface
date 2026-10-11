@@ -11,6 +11,8 @@ import { toISODate } from '../lib/dates';
 import { log } from '../log';
 import { REGISTRY } from '../registry';
 import type { LoadContext, RegistryModule } from '../registry/types';
+import type { AccessRole } from './accessPolicy';
+import { isPanelAllowed } from './accessPolicy';
 import type { ComponentData } from './auction';
 
 const CACHE_TTL_MS = 60_000;
@@ -34,6 +36,7 @@ function createContext(
   allowedClientIds: readonly string[] | null,
   organizationId: string | null,
   userId: string | null,
+  accessRole: AccessRole | null = null,
 ): LoadContext {
   const memo = new Map<string, Promise<unknown>>();
   const once = <T,>(key: string, fn: () => Promise<T>): Promise<T> => {
@@ -46,6 +49,7 @@ function createContext(
   };
 
   const load = <K extends ComponentId>(id: K): Promise<PanelProps<K> | null> => {
+    if (!isPanelAllowed(id, accessRole)) return Promise.resolve(null);
     const mod = REGISTRY[id] as RegistryModule<K>;
     return once(`module:${id}`, () => runLoader(mod, ctx));
   };
@@ -57,6 +61,7 @@ function createContext(
     allowedClientIds,
     organizationId,
     userId,
+    accessRole,
     once,
     load,
   };
@@ -94,6 +99,7 @@ export function loadScopeData(
   allowedClientIds: readonly string[] | null = null,
   organizationId: string | null = null,
   userId: string | null = null,
+  accessRole: AccessRole | null = null,
 ): Promise<ScopeData> {
   const key = JSON.stringify([
     db.schema,
@@ -104,12 +110,21 @@ export function loadScopeData(
     allowedClientIds ? [...allowedClientIds].sort() : null,
     organizationId,
     userId,
+    accessRole,
   ]);
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.data;
 
   const data = (async () => {
-    const ctx = createContext(db, scope, today, allowedClientIds, organizationId, userId);
+    const ctx = createContext(
+      db,
+      scope,
+      today,
+      allowedClientIds,
+      organizationId,
+      userId,
+      accessRole,
+    );
     const ids = Object.keys(REGISTRY).filter(isComponentId);
     const loaded = await Promise.all(ids.map(async (id) => [id, await ctx.load(id)] as const));
     return { ctx, props: Object.fromEntries(loaded) as ScopeData['props'] };
