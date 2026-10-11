@@ -74,6 +74,14 @@ export function LandingPage() {
           <a href="/" className="font-display text-xl tracking-tight text-text">
             Gestalt
           </a>
+          <nav className="hidden items-center gap-5 text-sm text-muted md:flex" aria-label="Marketing">
+            <a href="/" className="text-text" aria-current="page">
+              Product
+            </a>
+            <a href="/pricing" className="transition-colors hover:text-text">
+              Pricing
+            </a>
+          </nav>
           <div className="flex items-center gap-2 sm:gap-3">
             <ThemeToggle />
             <a href="/login" className="hidden text-sm text-muted transition-colors hover:text-text sm:inline">
@@ -96,7 +104,15 @@ export function LandingPage() {
 
       <footer className="border-t border-border/60 px-5 py-10 sm:px-8">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <p className="font-display text-2xl tracking-tight">Gestalt</p>
+          <div>
+            <p className="font-display text-2xl tracking-tight">Gestalt</p>
+            <a
+              href="/pricing"
+              className="mt-3 inline-block text-sm text-muted transition-colors hover:text-text"
+            >
+              Pricing
+            </a>
+          </div>
           <p className="max-w-sm text-sm leading-relaxed text-muted">
             Intent in. Ranked needs. Deterministic layout. A workspace that clears itself around the
             question.

@@ -186,3 +186,67 @@
     animation: none;
   }
 }
+
+/* Pricing */
+
+.pricing-billing {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 80%, var(--bg));
+}
+
+.pricing-billing button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0 0.9rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.pricing-billing button.is-active {
+  border-color: var(--border);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.pricing-save {
+  color: var(--accent-text);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.pricing-plan {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1.35rem;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+
+.pricing-plan.is-featured {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+}
+
+.pricing-plan-badge {
+  margin-bottom: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-text);
+}
+
+.pricing-plan .landing-cta {
+  margin-top: auto;
+}

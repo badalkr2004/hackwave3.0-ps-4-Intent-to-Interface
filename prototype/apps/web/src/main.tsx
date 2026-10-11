@@ -10,6 +10,7 @@ import { ChatPage } from './chat/ChatPage';
 import { ConnectorsPage } from './connectors/ConnectorsPage';
 import { Gallery } from './gallery/Gallery';
 import { LandingPage } from './landing/LandingPage';
+import { PricingPage } from './landing/PricingPage';
 import { OrgHub } from './org/OrgHub';
 import { AppErrorBoundary } from './shell/AppErrorBoundary';
 
@@ -20,6 +21,7 @@ const path = window.location.pathname;
 
 function pageFor(pathname: string) {
   if (pathname === '/' || pathname === '') return <LandingPage />;
+  if (pathname.startsWith('/pricing')) return <PricingPage />;
   if (pathname.startsWith('/app')) return <App />;
   if (pathname.startsWith('/chat')) return <ChatPage />;
   if (pathname.startsWith('/gallery')) return <Gallery />;
