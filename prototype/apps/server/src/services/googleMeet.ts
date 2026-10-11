@@ -157,6 +157,41 @@ export async function scheduleGoogleMeeting(
     .returning();
 
   if (!row) throw new Error('Could not save meeting.');
+
+  // Index scheduled meeting + pinned date into RAG (never blocks calendar write).
+  try {
+    const { ragIngestFireAndForget } = await import('./ragClient');
+    const startIso = startsAt.toISOString();
+    const endIso = endsAt.toISOString();
+    const day = startIso.slice(0, 10);
+    const attendeeLine = emails.length ? ` Attendees: ${emails.join(', ')}.` : '';
+    ragIngestFireAndForget([
+      {
+        id: `gmeet:${rowId}`,
+        title: row.title,
+        text: [
+          `Google Calendar meeting “${row.title}” pinned on ${day}.`,
+          `Starts ${startIso}, ends ${endIso}.`,
+          `Status: scheduled.`,
+          meetLink ? `Meet link: ${meetLink}.` : '',
+          input.description?.trim() ? `Agenda: ${input.description.trim()}` : '',
+          attendeeLine,
+          input.clientId ? `Portfolio client: ${input.clientId}.` : '',
+        ]
+          .filter(Boolean)
+          .join(' '),
+        source_type: 'google_calendar',
+        org_id: orgId,
+        client_id: input.clientId || '',
+        date: day,
+        tags: ['meeting', 'google', 'calendar', 'scheduled', day],
+        access_tier: 'public',
+      },
+    ]);
+  } catch {
+    /* isolation: ignore */
+  }
+
   return toPublic(row);
 }
 

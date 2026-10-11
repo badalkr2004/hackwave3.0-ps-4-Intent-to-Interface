@@ -3,7 +3,7 @@ import { getDb } from '../db/client';
 import { getDbState } from '../db/state';
 import { getDrizzle } from '../db/drizzle';
 import { env } from '../env';
-import { meetingMinutes, orgActionItem } from '../db/auth-schema';
+import { googleMeeting, meetingMinutes, orgActionItem } from '../db/auth-schema';
 import {
   capabilitiesFor,
   ticketMatchesRole,
@@ -78,6 +78,10 @@ export async function buildLiveContext(req: RagLiveContextRequest): Promise<{
       '',
       '### meetings — story meeting notes (client-scoped)',
       'id, client_id, date, kind, title, notes, commitments (json)',
+      '',
+      '### google_meeting — Google Calendar / Meet (org-scoped, dates pinned)',
+      'id, organization_id, title, starts_at, ends_at, meet_link, html_link, attendees, client_id, status, meeting_minutes_id',
+      'Pinned date = calendar day of starts_at (YYYY-MM-DD). Use for “when is my meeting” / schedule questions.',
       '',
       '### meeting_minutes — org MoM archive',
       'id, organization_id, client_id, meeting_id, title, held_at, raw_text, summary, decisions, action_items, attendees, source',
@@ -164,6 +168,63 @@ export async function buildLiveContext(req: RagLiveContextRequest): Promise<{
                     .join('; ')
                 : '';
               return `- [${r.date.slice(0, 10)}] ${r.client_name}: ${r.title} (${r.kind})\n  Notes: ${notes || '(none)'}${commits ? `\n  Commitments: ${commits}` : ''}`;
+            })
+            .join('\n'),
+      );
+    }
+  }
+
+  {
+    const gmeetsRaw = await drizzle
+      .select({
+        id: googleMeeting.id,
+        title: googleMeeting.title,
+        startsAt: googleMeeting.startsAt,
+        endsAt: googleMeeting.endsAt,
+        status: googleMeeting.status,
+        meetLink: googleMeeting.meetLink,
+        clientId: googleMeeting.clientId,
+        attendees: googleMeeting.attendees,
+      })
+      .from(googleMeeting)
+      .where(eq(googleMeeting.organizationId, req.org_id))
+      .orderBy(desc(googleMeeting.startsAt))
+      .limit(40);
+    const gmeets = clientFilter
+      ? gmeetsRaw.filter((m) => !m.clientId || clientIds.includes(m.clientId))
+      : gmeetsRaw;
+
+    if (gmeets.length) {
+      const pinned = [
+        ...new Set(
+          gmeets.map((m) =>
+            m.startsAt instanceof Date
+              ? m.startsAt.toISOString().slice(0, 10)
+              : String(m.startsAt).slice(0, 10),
+          ),
+        ),
+      ].sort();
+      sections.push(
+        '## LIVE DATA — google_meeting (Google Calendar, dates pinned)\n' +
+          `Pinned meeting dates: ${pinned.join(', ')}\n` +
+          gmeets
+            .map((m) => {
+              const start =
+                m.startsAt instanceof Date ? m.startsAt.toISOString() : String(m.startsAt);
+              const end = m.endsAt instanceof Date ? m.endsAt.toISOString() : String(m.endsAt);
+              const day = start.slice(0, 10);
+              const emails = Array.isArray(m.attendees)
+                ? m.attendees
+                    .slice(0, 5)
+                    .map((a) =>
+                      typeof a === 'object' && a && 'email' in a
+                        ? String((a as { email: unknown }).email)
+                        : '',
+                    )
+                    .filter(Boolean)
+                    .join(', ')
+                : '';
+              return `- [pinned ${day}] ${m.title} · ${start} → ${end} · status=${m.status} · client=${m.clientId ?? 'n/a'}${m.meetLink ? ` · meet=${m.meetLink}` : ''}${emails ? `\n  Attendees: ${emails}` : ''}`;
             })
             .join('\n'),
       );
@@ -563,6 +624,60 @@ export async function buildIndexDocuments(
     });
   }
 
+  const gmeets = await drizzle
+    .select({
+      id: googleMeeting.id,
+      title: googleMeeting.title,
+      startsAt: googleMeeting.startsAt,
+      endsAt: googleMeeting.endsAt,
+      status: googleMeeting.status,
+      meetLink: googleMeeting.meetLink,
+      clientId: googleMeeting.clientId,
+      attendees: googleMeeting.attendees,
+    })
+    .from(googleMeeting)
+    .where(eq(googleMeeting.organizationId, orgId))
+    .orderBy(desc(googleMeeting.startsAt))
+    .limit(60);
+
+  for (const m of gmeets) {
+    if (clientFilter && m.clientId && !clientIds.includes(m.clientId)) continue;
+    const startIso =
+      m.startsAt instanceof Date ? m.startsAt.toISOString() : String(m.startsAt);
+    const endIso = m.endsAt instanceof Date ? m.endsAt.toISOString() : String(m.endsAt);
+    const day = startIso.slice(0, 10);
+    const emails = Array.isArray(m.attendees)
+      ? m.attendees
+          .map((a) =>
+            typeof a === 'object' && a && 'email' in a
+              ? String((a as { email: unknown }).email)
+              : '',
+          )
+          .filter(Boolean)
+          .join(', ')
+      : '';
+    docs.push({
+      id: `gmeet:${m.id}`,
+      title: m.title,
+      text: [
+        `Google Calendar meeting “${m.title}” pinned on ${day}.`,
+        `Starts ${startIso}, ends ${endIso}.`,
+        `Status: ${m.status}.`,
+        m.meetLink ? `Meet link: ${m.meetLink}.` : '',
+        emails ? `Attendees: ${emails}.` : '',
+        m.clientId ? `Portfolio client: ${m.clientId}.` : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+      source_type: 'google_calendar',
+      org_id: orgId,
+      client_id: m.clientId || '',
+      date: day,
+      tags: ['meeting', 'google', 'calendar', m.status, day],
+      access_tier: 'public',
+    });
+  }
+
   const moms = await drizzle
     .select({
       id: meetingMinutes.id,
@@ -600,8 +715,9 @@ export async function buildIndexDocuments(
     id: `schema:${orgId}`,
     title: 'Gestalt database schema reference',
     text: [
-      'Tables: clients, meetings, meeting_minutes, org_action_item, tickets, usage_daily, tasks, projects, sales_opportunity, communications, people, releases.',
-      'Chat combines vector retrieval with live SQL snapshots for current tickets, MoM, usage, and overdue tasks.',
+      'Tables: clients, meetings, google_meeting, meeting_minutes, org_action_item, tickets, usage_daily, tasks, projects, sales_opportunity, communications, people, releases.',
+      'google_meeting stores Google Calendar events with pinned starts_at dates and Meet links.',
+      'Chat combines vector retrieval with live SQL snapshots for current tickets, calendar meetings, MoM, usage, and overdue tasks.',
       'tickets = demo engineering issues; live Atlassian Jira is a separate connector.',
     ].join(' '),
     source_type: 'schema',

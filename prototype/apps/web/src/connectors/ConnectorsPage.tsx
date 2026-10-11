@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   ArrowLeft,
   Cable,
@@ -7,6 +7,7 @@ import {
   Plug,
   Unplug,
   Video,
+  X,
 } from 'lucide-react';
 import { authClient } from '../lib/auth';
 import { fetchMe } from '../lib/orgApi';
@@ -49,6 +50,7 @@ export function ConnectorsPage() {
   const [projectKey, setProjectKey] = useState('');
   const [apiToken, setApiToken] = useState('');
   const [projects, setProjects] = useState<JiraProject[]>([]);
+  const jiraDialogRef = useRef<HTMLDialogElement>(null);
 
   const refresh = async () => {
     const data = await fetchConnectors();
@@ -120,6 +122,13 @@ export function ConnectorsPage() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    const dialog = jiraDialogRef.current;
+    if (!dialog) return;
+    if (adding && !jira?.connected && !dialog.open) dialog.showModal();
+    if ((!adding || jira?.connected) && dialog.open) dialog.close();
+  }, [adding, jira?.connected]);
 
   const onConnectJira = async (e: FormEvent) => {
     e.preventDefault();
@@ -292,8 +301,15 @@ export function ConnectorsPage() {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => setAdding(true)}
-                        className="inline-flex min-h-11 items-center gap-2 bg-accent px-4 text-sm font-medium text-on-accent"
+                        disabled={busy}
+                        onClick={() => {
+                          setError(null);
+                          setAdding(true);
+                          // Open immediately — don't wait for the effect (felt unresponsive before).
+                          const dialog = jiraDialogRef.current;
+                          if (dialog && !dialog.open) dialog.showModal();
+                        }}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-accent hover:opacity-95 disabled:opacity-50"
                       >
                         <Plug className="size-4" aria-hidden />
                         Add Jira
@@ -345,18 +361,39 @@ export function ConnectorsPage() {
         </div>
       </section>
 
-      {adding && !jira?.connected && (
-        <section className="mt-10 max-w-xl border-t border-border pt-8" aria-labelledby="connect-jira">
-          <h2 id="connect-jira" className="font-display text-xl text-text">
-            Connect Jira
-          </h2>
-          <p className="mt-2 text-sm text-muted">
-            Use your Atlassian site URL and account email.
-            {defaults.hasServerToken
-              ? ' A server API key is already configured — you can leave the token blank.'
-              : ' Paste an Atlassian API token (Account → Security → API tokens).'}
-          </p>
-          <form onSubmit={(e) => void onConnectJira(e)} className="mt-6 flex flex-col gap-5">
+      <dialog
+        ref={jiraDialogRef}
+        className="m-auto w-[min(100vw-1.5rem,32rem)] rounded-xl border border-border bg-surface p-0 text-text shadow-panel backdrop:bg-canvas/50"
+        onClose={() => setAdding(false)}
+        onClick={(e) => {
+          if (e.target === jiraDialogRef.current) setAdding(false);
+        }}
+      >
+        <form className="flex flex-col" onSubmit={(e) => void onConnectJira(e)}>
+          <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-medium text-text">
+                <Plug className="size-4 text-accent" aria-hidden />
+                Connect Jira
+              </p>
+              <p className="mt-0.5 text-xs text-muted">
+                Use your Atlassian site URL and account email.
+                {defaults.hasServerToken
+                  ? ' A server API key is already configured — you can leave the token blank.'
+                  : ' Paste an Atlassian API token (Account → Security → API tokens).'}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => setAdding(false)}
+              className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-text"
+            >
+              <X className="size-4" />
+            </button>
+          </header>
+
+          <div className="flex flex-col gap-3 px-5 py-4">
             <label className="text-xs font-medium tracking-wide text-muted uppercase">
               Site URL
               <input
@@ -364,7 +401,7 @@ export function ConnectorsPage() {
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
                 placeholder="https://your-team.atlassian.net"
-                className="mt-2 min-h-12 w-full border-0 border-b border-border-strong bg-transparent px-0 text-base text-text outline-none focus:border-accent"
+                className="mt-1.5 min-h-11 w-full rounded-md border border-border bg-canvas px-3 text-sm text-text outline-none focus:border-accent"
               />
             </label>
             <label className="text-xs font-medium tracking-wide text-muted uppercase">
@@ -375,7 +412,7 @@ export function ConnectorsPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="mt-2 min-h-12 w-full border-0 border-b border-border-strong bg-transparent px-0 text-base text-text outline-none focus:border-accent"
+                className="mt-1.5 min-h-11 w-full rounded-md border border-border bg-canvas px-3 text-sm text-text outline-none focus:border-accent"
               />
             </label>
             <label className="text-xs font-medium tracking-wide text-muted uppercase">
@@ -384,7 +421,7 @@ export function ConnectorsPage() {
                 value={projectKey}
                 onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
                 placeholder="ENG"
-                className="mt-2 min-h-12 w-full border-0 border-b border-border-strong bg-transparent px-0 text-base text-text outline-none focus:border-accent"
+                className="mt-1.5 min-h-11 w-full rounded-md border border-border bg-canvas px-3 text-sm text-text outline-none focus:border-accent"
               />
             </label>
             <label className="text-xs font-medium tracking-wide text-muted uppercase">
@@ -401,29 +438,35 @@ export function ConnectorsPage() {
                 placeholder={
                   defaults.hasServerToken ? 'Leave blank to use server key' : 'Atlassian API token'
                 }
-                className="mt-2 min-h-12 w-full border-0 border-b border-border-strong bg-transparent px-0 text-base text-text outline-none focus:border-accent"
+                className="mt-1.5 min-h-11 w-full rounded-md border border-border bg-canvas px-3 text-sm text-text outline-none focus:border-accent"
               />
             </label>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="submit"
-                disabled={busy}
-                className="inline-flex min-h-12 items-center gap-2 bg-accent px-5 text-sm font-medium text-on-accent disabled:opacity-50"
-              >
-                {busy && <LoaderCircle className="size-4 animate-spin" />}
-                Connect
-              </button>
-              <button
-                type="button"
-                onClick={() => setAdding(false)}
-                className="inline-flex min-h-12 items-center px-4 text-sm text-muted hover:text-text"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
+            {error && adding && (
+              <p role="alert" className="rounded-md bg-danger-bg px-3 py-2 text-sm text-danger">
+                {error}
+              </p>
+            )}
+          </div>
+
+          <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-3">
+            <button
+              type="button"
+              onClick={() => setAdding(false)}
+              className="inline-flex min-h-10 items-center rounded-md border border-border px-3 text-sm text-text hover:bg-surface-2"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={busy}
+              className="inline-flex min-h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-50"
+            >
+              {busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : null}
+              Connect
+            </button>
+          </footer>
+        </form>
+      </dialog>
 
       {jira?.connected && (
         <>

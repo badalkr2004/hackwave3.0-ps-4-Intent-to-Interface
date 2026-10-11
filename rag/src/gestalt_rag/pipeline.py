@@ -27,7 +27,7 @@ Formatting (important — the UI renders Markdown + safe HTML):
 - Do NOT emit JSON UI specs, React, or dashboard component names.
 
 Grounding rules:
-- Prefer LIVE DATABASE SNAPSHOT for current meetings/MoM, usage, overdue tasks, clients, and sales.
+- Prefer LIVE DATABASE SNAPSHOT for current meetings/MoM, Google Calendar (google_meeting pinned dates), usage, overdue tasks, clients, and sales.
 - For engineering tickets: prefer "Atlassian Jira (live)" (real keys like PROJ-12).
   Demo story tickets (H-T*, T-*) are secondary — only if the user asks about demo data or live Jira is unavailable.
 - Use RETRIEVED DOCUMENTS for narrative detail.

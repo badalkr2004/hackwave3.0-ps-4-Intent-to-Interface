@@ -55,6 +55,22 @@
 }
 
 @layer base {
+  /* Native <dialog>: Tailwind preflight can leave open dialogs non-visible. */
+  dialog {
+    max-width: calc(100vw - 2rem);
+    border: none;
+    padding: 0;
+    color: inherit;
+    background: transparent;
+  }
+  dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  dialog::backdrop {
+    background: color-mix(in srgb, var(--bg) 50%, transparent);
+  }
+
   html {
     background-color: var(--bg);
     color: var(--text);

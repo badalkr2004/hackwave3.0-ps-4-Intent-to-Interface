@@ -285,7 +285,11 @@ export function GoogleMeetSection({
           Loading meetings…
         </p>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-muted">No meetings yet. Schedule one above.</p>
+        <p className="text-sm text-muted">
+          {compact
+            ? 'No Google Calendar meetings yet. Use Schedule meeting on the dashboard.'
+            : 'No meetings yet. Schedule one above.'}
+        </p>
       ) : (
         <ul className="divide-y divide-border border-t border-border" aria-label="Google meetings">
           {shown.map((m) => (
@@ -355,10 +359,8 @@ export function GoogleMeetSection({
         </ul>
       )}
 
-      {compact && (
-        <a href="/connectors" className="text-sm text-accent-text hover:underline">
-          Schedule & manage in Connectors
-        </a>
+      {compact && meetings.length > 4 && (
+        <p className="text-xs text-muted">Showing latest 4 · open Calendar meetings for the full list</p>
       )}
     </div>
   );
