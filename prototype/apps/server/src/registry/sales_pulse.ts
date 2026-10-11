@@ -1,3 +1,4 @@
+import { capabilitiesFor } from '../services/accessPolicy';
 import { dayOf, defineModule, effectiveClientIds } from './types';
 
 const OPEN = new Set(['lead', 'qualified', 'proposal', 'negotiation']);
@@ -5,6 +6,7 @@ const OPEN = new Set(['lead', 'qualified', 'proposal', 'negotiation']);
 export default defineModule({
   id: 'sales_pulse',
   async loader(ctx) {
+    if (!capabilitiesFor(ctx.accessRole).sales) return null;
     if (!ctx.organizationId) return null;
     const allowed = effectiveClientIds(ctx);
     if (allowed && allowed.length === 0) return null;

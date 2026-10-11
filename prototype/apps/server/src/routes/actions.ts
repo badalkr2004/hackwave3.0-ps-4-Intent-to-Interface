@@ -12,19 +12,16 @@ import { startOfDay } from '../lib/dates';
 import { draftEmail } from '../services/copy';
 import { loadScopeData } from '../services/data';
 import { buildDigest } from '../services/digest';
-import { current, getSession } from '../session';
-import { entitiesFor, parseBody } from './session';
+import { current } from '../session';
+import { entitiesFor, parseBody, requireSession } from './session';
 
 export const actionsRouter = Router();
 
 actionsRouter.post('/actions/draft-email', async (req, res, next) => {
   const body = parseBody(DraftEmailRequest, req, res);
   if (!body) return;
-  const session = getSession(body.sessionId);
-  if (!session) {
-    res.status(404).json({ error: 'Session not found' });
-    return;
-  }
+  const session = await requireSession(req, res, body.sessionId);
+  if (!session) return;
   const db = getDbState() === 'up' ? getDb() : null;
   const scope = current(session)?.intent.scope;
   if (!db || !scope?.clientId) {
@@ -73,11 +70,8 @@ const activity: { at: number; sessionId: string; message: string }[] = [];
 actionsRouter.post('/actions/execute', async (req, res) => {
   const body = parseBody(ExecuteActionRequest, req, res);
   if (!body) return;
-  const session = getSession(body.sessionId);
-  if (!session) {
-    res.status(404).json({ error: 'Session not found' });
-    return;
-  }
+  const session = await requireSession(req, res, body.sessionId);
+  if (!session) return;
   if (body.actionId === 'draft_pre_meeting_email' || body.actionId === 'draft_customer_update') {
     res.status(400).json({ error: 'Use /api/actions/draft-email for email drafts' });
     return;

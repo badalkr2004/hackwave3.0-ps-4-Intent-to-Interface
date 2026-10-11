@@ -213,6 +213,43 @@ Action items:
       ${now}
     )`;
 
+  // Management-tier note (ARR / renewal) — indexed as access_tier=management for managers only.
+  const heldMgmt = new Date(now.getTime() - 2 * 86_400_000);
+  await tx`
+    INSERT INTO meeting_minutes (
+      id, organization_id, client_id, meeting_id, title, held_at, raw_text, summary,
+      decisions, action_items, attendees, source, created_by, created_at
+    ) VALUES (
+      'mom_northwind_mgmt_1',
+      ${NORTHWIND.orgId},
+      'acme',
+      null,
+      'Acme ARR renewal forecast',
+      ${heldMgmt},
+      ${`Title: Acme ARR renewal forecast
+Attendees:
+Avery Chen, Morgan Lee
+Decisions:
+- Hold 8% discount contingency if export SLA slips before renewal
+Action items:
+- Prep executive ARR brief (Morgan Lee) due ${dueSoon}`},
+      'Management note: Acme ARR and renewal risk; discount contingency if export reliability slips.',
+      ${tx.json(['Hold discount contingency tied to renewal window'])},
+      ${tx.json([
+        {
+          id: 'mom_nw_mgmt_ai1',
+          text: 'Prep executive ARR brief',
+          owner: 'Morgan Lee',
+          due: dueSoon,
+          status: 'open',
+        },
+      ])},
+      ${tx.json(['Avery Chen', 'Morgan Lee'])},
+      'seed',
+      ${NORTHWIND.userId},
+      ${now}
+    )`;
+
   await tx`
     INSERT INTO meeting_minutes (
       id, organization_id, client_id, meeting_id, title, held_at, raw_text, summary,

@@ -5,13 +5,20 @@ import { getDrizzle } from '../db/drizzle';
 import { env } from '../env';
 import { googleMeeting, meetingMinutes, orgActionItem } from '../db/auth-schema';
 import {
+  DEV_TAGS,
   capabilitiesFor,
+  filterJiraIssuesForRole,
   ticketMatchesRole,
   type AccessRole,
 } from './accessPolicy';
 import { resolveJiraForSession } from './connectors';
 import { searchRecentIssues, type JiraIssue } from './jira';
 import { log } from '../log';
+
+function tierForStoryTicket(tags: readonly string[]): 'engineering' | 'public' {
+  const eng = tags.some((t) => DEV_TAGS.includes(t.toLowerCase() as (typeof DEV_TAGS)[number]));
+  return eng ? 'engineering' : 'public';
+}
 
 export type RagLiveContextRequest = {
   org_id: string;
@@ -36,15 +43,21 @@ export async function buildLiveContext(req: RagLiveContextRequest): Promise<{
   const story = dbReady ? getDb()! : null;
   const clientFilter = clientIds.length > 0;
 
-  // Always try live Jira even if Postgres is briefly down (hot reload).
-  if (caps.engineeringTickets) {
-    const jiraSection = await formatLiveJiraSection(req.user_id ?? null, req.query);
+  // Live Jira only when role may see engineering connectors.
+  if (caps.jiraLive) {
+    const jiraSection = await formatLiveJiraSection(
+      req.user_id ?? null,
+      req.query,
+      req.access_role,
+    );
     if (jiraSection) sections.push(jiraSection);
     else {
       sections.push(
         '## LIVE DATA — Atlassian Jira\n(not connected — connect Jira under Connectors, or set server JIRA_* env.)',
       );
     }
+  } else {
+    sections.push('## LIVE DATA — Atlassian Jira\n(redacted for this access_role)');
   }
 
   if (!story || !drizzle) {
@@ -314,7 +327,7 @@ export async function buildLiveContext(req: RagLiveContextRequest): Promise<{
     }
   }
 
-  if (caps.engineeringTickets) {
+  if (caps.storyTicketsMode !== 'none') {
     const rows = await sql<
       {
         id: string;
@@ -346,6 +359,8 @@ export async function buildLiveContext(req: RagLiveContextRequest): Promise<{
             .join('\n'),
       );
     }
+  } else {
+    sections.push('## LIVE DATA — demo story tickets\n(redacted for this access_role)');
   }
 
   {
@@ -473,27 +488,30 @@ function jiraStatusFromQuery(query?: string): 'open' | 'done' | 'all' {
 async function formatLiveJiraSection(
   userId: string | null,
   query?: string,
+  accessRole?: AccessRole,
 ): Promise<string | null> {
   try {
     const access = await resolveJiraForSession(userId);
     if (!access) return null;
     const status = jiraStatusFromQuery(query);
-    const issues = await searchRecentIssues(access.creds, {
+    const raw = await searchRecentIssues(access.creds, {
       projectKey: access.projectKey,
       maxResults: 30,
       status,
     });
+    const issues = filterJiraIssuesForRole(raw, accessRole);
     // If user asked for closed and got none, also pull open so the model can say so clearly.
     let extra: JiraIssue[] = [];
     if (status === 'done' && issues.length === 0) {
-      extra = await searchRecentIssues(access.creds, {
+      const openRaw = await searchRecentIssues(access.creds, {
         projectKey: access.projectKey,
         maxResults: 15,
         status: 'open',
       });
+      extra = filterJiraIssuesForRole(openRaw, accessRole);
     }
     if (!issues.length && !extra.length) {
-      return `## LIVE DATA — Atlassian Jira (live)\nConnected (${access.source}${access.projectKey ? `, project ${access.projectKey}` : ''}) but no issues matched status=${status}.`;
+      return `## LIVE DATA — Atlassian Jira (live)\nConnected (${access.source}${access.projectKey ? `, project ${access.projectKey}` : ''}) but no issues matched status=${status} for this access role.`;
     }
     const label =
       status === 'done' ? 'closed/done' : status === 'open' ? 'open' : 'recent';
@@ -587,6 +605,7 @@ export async function buildIndexDocuments(
     LIMIT 80`;
 
   for (const t of tickets) {
+    const tier = tierForStoryTicket(t.tags ?? []);
     docs.push({
       id: `db-ticket:${t.id}`,
       title: `${t.id} ${t.title}`,
@@ -597,7 +616,7 @@ export async function buildIndexDocuments(
       date: t.updated.slice(0, 10),
       ticket_id: t.id,
       tags: [...(t.tags ?? []), 'demo-story'],
-      access_tier: 'engineering',
+      access_tier: tier,
     });
   }
 
@@ -698,17 +717,52 @@ export async function buildIndexDocuments(
       m.heldAt instanceof Date
         ? m.heldAt.toISOString().slice(0, 10)
         : String(m.heldAt).slice(0, 10);
+    const body = (m.rawText || m.summary || m.title).slice(0, 12_000);
+    const management =
+      /\b(arr|renewal|discount|pipeline|forecast|quota|upsell)\b/i.test(m.title + ' ' + body);
     docs.push({
       id: `mom:${m.id}`,
       title: m.title,
-      text: (m.rawText || m.summary || m.title).slice(0, 12_000),
+      text: body,
       source_type: 'mom',
       org_id: orgId,
       client_id: m.clientId,
       date: held,
-      tags: ['meeting', 'mom'],
-      access_tier: 'public',
+      tags: ['meeting', 'mom', ...(management ? ['management'] : [])],
+      access_tier: management ? 'management' : 'public',
     });
+  }
+
+  {
+    const sch = sql(env.DB_SCHEMA);
+    const opps = await sql<
+      {
+        id: string;
+        client_id: string;
+        name: string;
+        stage: string;
+        amount: number;
+        probability: number;
+      }[]
+    >`
+      SELECT id, client_id, name, stage, amount::float8 AS amount, probability::float8 AS probability
+      FROM ${sch}.sales_opportunity
+      WHERE organization_id = ${orgId}
+        ${clientFilter ? sql`AND client_id = ANY(${clientIds})` : sql``}
+      ORDER BY amount DESC
+      LIMIT 40`;
+    for (const o of opps) {
+      docs.push({
+        id: `sales:${o.id}`,
+        title: o.name,
+        text: `Sales opportunity “${o.name}” for client ${o.client_id}. Stage ${o.stage}, amount ${o.amount}, probability ${o.probability}. Management-tier pipeline data.`,
+        source_type: 'sales',
+        org_id: orgId,
+        client_id: o.client_id,
+        tags: ['sales', 'pipeline', o.stage],
+        access_tier: 'management',
+      });
+    }
   }
 
   docs.push({
@@ -719,6 +773,7 @@ export async function buildIndexDocuments(
       'google_meeting stores Google Calendar events with pinned starts_at dates and Meet links.',
       'Chat combines vector retrieval with live SQL snapshots for current tickets, calendar meetings, MoM, usage, and overdue tasks.',
       'tickets = demo engineering issues; live Atlassian Jira is a separate connector.',
+      'access_tier: public (CS), engineering (Jira/eng tickets), management (sales/renewals).',
     ].join(' '),
     source_type: 'schema',
     org_id: orgId,

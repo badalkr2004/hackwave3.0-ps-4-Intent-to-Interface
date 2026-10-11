@@ -9,6 +9,21 @@ import {
   type UISpec,
 } from '@gestalt/shared';
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export function isSessionGone(err: unknown): boolean {
+  return err instanceof ApiError && (err.code === 'SESSION_GONE' || err.status === 404);
+}
+
 export async function fetchHealth(signal?: AbortSignal): Promise<HealthResponse> {
   const res = await fetch('/api/health', { signal });
   if (!res.ok) throw new Error(`Health check failed (${res.status})`);
@@ -26,13 +41,17 @@ async function postJson(url: string, body?: unknown): Promise<unknown> {
     const payload = (await res.json().catch(() => ({}))) as { error?: string; code?: string };
     if (payload.code === 'AUTH_REQUIRED') {
       window.location.assign('/login');
-      throw new Error(payload.error || 'Sign in required');
+      throw new ApiError(payload.error || 'Sign in required', res.status, payload.code);
     }
     if (payload.code === 'NEED_ORG') {
       window.location.assign('/onboard');
-      throw new Error(payload.error || 'Organization required');
+      throw new ApiError(payload.error || 'Organization required', res.status, payload.code);
     }
-    throw new Error(payload.error || `Request failed (${res.status})`);
+    throw new ApiError(
+      payload.error || `Request failed (${res.status})`,
+      res.status,
+      payload.code ?? (res.status === 404 ? 'SESSION_GONE' : undefined),
+    );
   }
   return res.json();
 }

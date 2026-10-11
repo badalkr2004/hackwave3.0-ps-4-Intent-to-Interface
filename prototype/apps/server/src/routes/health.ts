@@ -14,7 +14,12 @@ healthRouter.get('/health', (_req, res) => {
   const body: HealthResponse = {
     ok: true,
     llm: llmMode(),
-    models: { fast: env.MODEL_FAST, write: env.MODEL_WRITE },
+    models: {
+      fast: env.MODEL_FAST,
+      write: env.MODEL_WRITE,
+      ...(env.MODEL_FAST_FALLBACK ? { fastFallback: env.MODEL_FAST_FALLBACK } : {}),
+      ...(env.MODEL_WRITE_FALLBACK ? { writeFallback: env.MODEL_WRITE_FALLBACK } : {}),
+    },
     db: getDbState(),
   };
   res.json(body);

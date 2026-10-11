@@ -1,30 +1,45 @@
 import { useEffect, useState } from 'react';
 import { Cable, LoaderCircle } from 'lucide-react';
 import { fetchConnectors, type JiraConnector } from '../lib/connectorsApi';
+import { fetchMe, type AccessCapabilities, type AccessRole } from '../lib/orgApi';
 import { JiraTickets } from './JiraTickets';
 
 /** Compact Jira block on the main workspace when the connector is active. */
 export function JiraDashboardStrip({ signedIn = true }: { signedIn?: boolean }) {
   const [jira, setJira] = useState<JiraConnector | null>(null);
+  const [caps, setCaps] = useState<AccessCapabilities | null>(null);
+  const [accessRole, setAccessRole] = useState<AccessRole | null>(null);
   const [checked, setChecked] = useState(!signedIn);
 
   useEffect(() => {
     if (!signedIn) {
       setChecked(true);
       setJira(null);
+      setCaps(null);
       return;
     }
     let cancelled = false;
-    void fetchConnectors()
-      .then((data) => {
+    void (async () => {
+      try {
+        const me = await fetchMe();
+        if (cancelled) return;
+        setCaps(me.capabilities ?? null);
+        setAccessRole(me.accessRole ?? null);
+        if (me.capabilities && !me.capabilities.jiraLive) {
+          setJira(null);
+          return;
+        }
+        const data = await fetchConnectors();
         if (!cancelled) setJira(data.jira);
-      })
-      .catch(() => {
-        if (!cancelled) setJira(null);
-      })
-      .finally(() => {
+      } catch {
+        if (!cancelled) {
+          setJira(null);
+          setCaps(null);
+        }
+      } finally {
         if (!cancelled) setChecked(true);
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -43,7 +58,11 @@ export function JiraDashboardStrip({ signedIn = true }: { signedIn?: boolean }) 
     );
   }
 
+  // Interns (and any role without jiraLive) do not see the Jira strip.
+  if (caps && !caps.jiraLive) return null;
+
   if (!jira?.connected) {
+    if (caps && !caps.writeConnectors) return null;
     return (
       <section className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <div className="flex items-start gap-2.5">
@@ -71,12 +90,21 @@ export function JiraDashboardStrip({ signedIn = true }: { signedIn?: boolean }) 
         <p className="flex items-center gap-2 text-xs font-medium tracking-[0.12em] text-muted uppercase">
           <Cable className="size-3.5" aria-hidden />
           Connected tool · Jira
+          {accessRole === 'developer' ? ' · read-only' : ''}
         </p>
-        <a href="/connectors" className="text-sm text-accent-text hover:underline">
-          Manage
-        </a>
+        {caps?.writeConnectors ? (
+          <a href="/connectors" className="text-sm text-accent-text hover:underline">
+            Manage
+          </a>
+        ) : (
+          <span className="text-xs text-muted">View only for your access role</span>
+        )}
       </div>
-      <JiraTickets compact projectKey={jira.projectKey} />
+      <JiraTickets
+        compact
+        projectKey={jira.projectKey}
+        readOnly={!caps?.writeConnectors}
+      />
     </section>
   );
 }

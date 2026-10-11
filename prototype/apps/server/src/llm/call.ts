@@ -1,7 +1,7 @@
 import { APICallError, NoObjectGeneratedError, Output, generateText, type LanguageModel } from 'ai';
 import type { z } from 'zod';
 import { log } from '../log';
-import { providerOptions, resolveModel } from './models';
+import { fallbackModelFor, providerOptions, resolveModel } from './models';
 
 export type Stage = 'intent' | 'plan' | 'copy';
 
@@ -34,6 +34,8 @@ export interface CallOptions<T> {
   signal?: AbortSignal;
   /** Test hook: use this model instead of resolving `model` from the registry. */
   languageModel?: LanguageModel;
+  /** Internal: already on the secondary model — do not chain further. */
+  _skipModelFallback?: boolean;
 }
 
 const MAX_ATTEMPTS = 2;
@@ -144,5 +146,16 @@ export async function callStructured<T>(opts: CallOptions<T>): Promise<CallResul
     }
     prompt = `${opts.user}\n\nYour previous output failed validation: ${lastError}. Return corrected output.`;
   }
-  return finish({ ok: false, error: lastError, meta });
+  const failed = finish({ ok: false, error: lastError, meta });
+  if (opts.signal?.aborted || opts.languageModel || opts._skipModelFallback) return failed;
+
+  const fb = fallbackModelFor(opts.model);
+  if (!fb) return failed;
+  log.warn('Primary LLM failed; trying fallback model', {
+    stage: opts.stage,
+    primary: opts.model,
+    fallback: fb,
+    error: failed.error,
+  });
+  return callStructured({ ...opts, model: fb, _skipModelFallback: true });
 }

@@ -109,7 +109,7 @@ Placement cells (`L1`, `C2`, …) only reorder within the existing zone grammar.
 
 ## Environment
 
-See `.env.example`. Models are `provider:modelId` (e.g. `groq:openai/gpt-oss-120b`). Set the matching API key. Switch providers without code changes; verify with `bun run llm:smoke`.
+See `.env.example`. Models are `provider:modelId` (e.g. `google:gemini-3.8-flash`). Set `GOOGLE_API_KEY` (or Groq/OpenAI/Anthropic keys). Switch providers without code changes; verify with `bun run llm:smoke`.
 
 | Variable | Role |
 |---|---|

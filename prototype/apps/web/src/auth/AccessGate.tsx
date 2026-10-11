@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { LoaderCircle } from 'lucide-react';
-import { fetchMe, type OrgSummary } from '../lib/orgApi';
+import { fetchMe, type AccessCapabilities, type OrgSummary } from '../lib/orgApi';
 
 export type AccessState =
   | { status: 'loading' }
@@ -12,6 +12,8 @@ export type AccessState =
       orgs: OrgSummary[];
       activeOrganizationId: string | null;
       activeOrg: OrgSummary | null;
+      scopeLabel: string | null;
+      capabilities: AccessCapabilities | null;
     };
 
 /**
@@ -47,6 +49,8 @@ export function useAccessGate(): AccessState {
           orgs: me.orgs,
           activeOrganizationId: me.activeOrganizationId ?? activeOrg?.id ?? null,
           activeOrg,
+          scopeLabel: me.scopeLabel ?? null,
+          capabilities: me.capabilities ?? null,
         });
       })
       .catch(() => {

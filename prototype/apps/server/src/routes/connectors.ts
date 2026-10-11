@@ -4,6 +4,12 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { requestUser } from '../lib/requestUser';
 import {
+  canAccessClient,
+  filterJiraIssuesForRole,
+  requireCapability,
+  resolveUserAccess,
+} from '../services/connectorAccess';
+import {
   connectJira,
   disconnectGoogle,
   disconnectJira,
@@ -42,6 +48,19 @@ async function requireUser(
     return null;
   }
   return user;
+}
+
+async function denyUnless(
+  userId: string,
+  flag: Parameters<typeof requireCapability>[1],
+  res: { status: (n: number) => { json: (b: unknown) => void } },
+) {
+  const gate = await requireCapability(userId, flag);
+  if (!gate.ok) {
+    res.status(gate.status).json({ error: gate.error, code: 'FORBIDDEN_ROLE' });
+    return null;
+  }
+  return gate;
 }
 
 connectorsRouter.get('/connectors', async (req, res) => {
@@ -135,6 +154,7 @@ connectorsRouter.delete('/connectors/mcp-tokens/:id', async (req, res) => {
 connectorsRouter.post('/connectors/jira', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'writeConnectors', res))) return;
   const body = z
     .object({
       baseUrl: z.string().min(8).max(200),
@@ -158,6 +178,7 @@ connectorsRouter.post('/connectors/jira', async (req, res) => {
 connectorsRouter.delete('/connectors/jira', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'writeConnectors', res))) return;
   try {
     const jira = await disconnectJira(user.id);
     res.json({ jira });
@@ -169,6 +190,7 @@ connectorsRouter.delete('/connectors/jira', async (req, res) => {
 connectorsRouter.patch('/connectors/jira', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'writeConnectors', res))) return;
   const body = z
     .object({ projectKey: z.string().max(32).nullable().optional() })
     .safeParse(req.body);
@@ -187,11 +209,14 @@ connectorsRouter.patch('/connectors/jira', async (req, res) => {
 connectorsRouter.get('/connectors/jira/issues', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  const gate = await denyUnless(user.id, 'jiraLive', res);
+  if (!gate) return;
   try {
     const { creds, projectKey } = await jiraCredentialsForUser(user.id);
     const maxResults = Math.min(Number(req.query.limit) || 15, 50);
     const project = typeof req.query.projectKey === 'string' ? req.query.projectKey : projectKey;
-    const issues = await searchRecentIssues(creds, { projectKey: project, maxResults });
+    const raw = await searchRecentIssues(creds, { projectKey: project, maxResults });
+    const issues = filterJiraIssuesForRole(raw, gate.accessRole);
     res.json({ issues, projectKey: project ?? null });
   } catch (e) {
     res.status(400).json({ error: e instanceof Error ? e.message : 'Could not load issues' });
@@ -201,6 +226,7 @@ connectorsRouter.get('/connectors/jira/issues', async (req, res) => {
 connectorsRouter.get('/connectors/jira/projects', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'jiraLive', res))) return;
   try {
     const { creds } = await jiraCredentialsForUser(user.id);
     const projects = await listProjects(creds);
@@ -213,6 +239,7 @@ connectorsRouter.get('/connectors/jira/projects', async (req, res) => {
 connectorsRouter.post('/connectors/jira/issues', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'writeConnectors', res))) return;
   const body = z
     .object({
       summary: z.string().min(1).max(255),
@@ -247,6 +274,7 @@ connectorsRouter.post('/connectors/jira/issues', async (req, res) => {
 connectorsRouter.post('/connectors/jira/issues/:key/resolve', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'writeConnectors', res))) return;
   const key = String(req.params.key || '').trim();
   if (!key) {
     res.status(400).json({ error: 'Issue key required.' });
@@ -265,6 +293,7 @@ connectorsRouter.post('/connectors/jira/issues/:key/resolve', async (req, res) =
 connectorsRouter.post('/connectors/google/connect', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'writeConnectors', res))) return;
   try {
     const google = await markGoogleConnected(user.id);
     res.json({ google });
@@ -276,6 +305,7 @@ connectorsRouter.post('/connectors/google/connect', async (req, res) => {
 connectorsRouter.delete('/connectors/google', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'writeConnectors', res))) return;
   try {
     const google = await disconnectGoogle(user.id);
     res.json({ google });
@@ -287,9 +317,14 @@ connectorsRouter.delete('/connectors/google', async (req, res) => {
 connectorsRouter.get('/connectors/google/meetings', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  const gate = await denyUnless(user.id, 'googleCalendar', res);
+  if (!gate) return;
   try {
     const meetings = await listGoogleMeetings(user.id);
-    res.json({ meetings });
+    const filtered = meetings.filter((m) =>
+      canAccessClient(m.clientId, gate.accessRole, gate.allowedClientIds),
+    );
+    res.json({ meetings: filtered });
   } catch (e) {
     res.status(400).json({ error: e instanceof Error ? e.message : 'Could not list meetings' });
   }
@@ -298,6 +333,7 @@ connectorsRouter.get('/connectors/google/meetings', async (req, res) => {
 connectorsRouter.post('/connectors/google/meetings', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'writeConnectors', res))) return;
   const body = z
     .object({
       title: z.string().min(1).max(200),
@@ -313,9 +349,15 @@ connectorsRouter.post('/connectors/google/meetings', async (req, res) => {
     return;
   }
   try {
+    const access = await resolveUserAccess(user.id);
+    const clientId = body.data.clientId ?? null;
+    if (clientId && !canAccessClient(clientId, access.accessRole, access.allowedClientIds)) {
+      res.status(403).json({ error: 'That client is outside your access scope.', code: 'FORBIDDEN_ROLE' });
+      return;
+    }
     const meeting = await scheduleGoogleMeeting(user.id, {
       ...body.data,
-      clientId: body.data.clientId ?? null,
+      clientId,
     });
     res.status(201).json({ meeting });
   } catch (e) {
@@ -326,6 +368,7 @@ connectorsRouter.post('/connectors/google/meetings', async (req, res) => {
 connectorsRouter.post('/connectors/google/meetings/:id/sync', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'googleCalendar', res))) return;
   const meetingId = String(req.params.id || '').trim();
   if (!meetingId) {
     res.status(400).json({ error: 'Meeting id required.' });
@@ -342,6 +385,7 @@ connectorsRouter.post('/connectors/google/meetings/:id/sync', async (req, res) =
 connectorsRouter.post('/connectors/google/meetings/:id/mom', async (req, res) => {
   const user = await requireUser(req, res);
   if (!user) return;
+  if (!(await denyUnless(user.id, 'writeConnectors', res))) return;
   const meetingId = String(req.params.id || '').trim();
   const body = z.object({ clientId: z.string().min(1).max(64) }).safeParse(req.body);
   if (!meetingId || !body.success) {

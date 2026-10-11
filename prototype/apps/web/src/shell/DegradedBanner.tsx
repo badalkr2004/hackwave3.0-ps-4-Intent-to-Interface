@@ -9,7 +9,8 @@ export function DegradedBanner({ show }: { show: boolean }) {
       className="flex items-center gap-2 rounded-md border border-border bg-warn-bg px-3 py-2 text-sm text-warn"
     >
       <WifiOff aria-hidden className="size-4 shrink-0" />
-      Working offline for some wording. Facts still come from your data.
+      Working in reduced mode — AI wording or live data may be limited. Facts still prefer your
+      database when available.
     </p>
   );
 }

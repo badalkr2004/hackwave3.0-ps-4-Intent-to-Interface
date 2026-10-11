@@ -30,7 +30,7 @@ import { SupersededError, commit, compose, composeNow, fillDeferred } from '../s
 import { loadEntities } from '../services/entities';
 import { OVERVIEW_INTENT, finalizeIntent, intentFrom, parseIntent } from '../services/intent';
 import { requestUser } from '../lib/requestUser';
-import { applyClientPolicy } from '../services/accessPolicy';
+import { applyClientPolicy, resolveAccessRole } from '../services/accessPolicy';
 import { clientIdsForOrg, getActiveOrgId, memberAccessRole } from '../services/orgs';
 import { loadPrefs, savePrefs } from '../services/prefs';
 import {
@@ -71,9 +71,30 @@ export function parseBody<T extends z.ZodType>(
   return parsed.data;
 }
 
-function sessionOr404(req: Request, res: Response): Session | null {
-  const session = getSession(String(req.params.id));
-  if (!session) res.status(404).json({ error: 'Session not found' });
+/**
+ * Resolve a session and (when Better Auth is on) require the caller to own it.
+ * Returns 404 for missing or foreign sessions so ids are not enumerable.
+ */
+export async function requireSession(
+  req: Request,
+  res: Response,
+  sessionId?: string,
+): Promise<Session | null> {
+  const session = getSession(sessionId ?? String(req.params.id));
+  if (!session) {
+    res.status(404).json({ error: 'Session not found', code: 'SESSION_GONE' });
+    return null;
+  }
+  if (!auth) return session;
+  const user = await requestUser(req);
+  if (!user) {
+    res.status(401).json({ error: 'Sign in required.', code: 'AUTH_REQUIRED' });
+    return null;
+  }
+  if (session.userId !== user.id) {
+    res.status(404).json({ error: 'Session not found', code: 'SESSION_GONE' });
+    return null;
+  }
   return session;
 }
 
@@ -141,9 +162,14 @@ async function streamIntent(
   stream.send({ type: 'spec', spec: c.spec });
 
   if (c.deferred.length) stream.send({ type: 'status', stage: 'writing' });
-  await fillDeferred(c.spec, c.deferred, (panelId, ok, props) =>
-    stream.send({ type: 'patch', panelId, status: ok ? 'ready' : 'error', props }),
+  await fillDeferred(
+    c.spec,
+    c.deferred,
+    (panelId, ok, props) =>
+      stream.send({ type: 'patch', panelId, status: ok ? 'ready' : 'error', props }),
+    stream.signal,
   );
+  if (stream.signal.aborted) return;
   stream.send({ type: 'done', requestId, degraded: c.spec.degraded });
 }
 
@@ -171,7 +197,7 @@ sessionRouter.post('/session', async (req, res, next) => {
         return;
       }
       const orgClientIds = await clientIdsForOrg(organizationId);
-      const accessRole = (await memberAccessRole(user.id, organizationId)) ?? 'manager';
+      const accessRole = resolveAccessRole(await memberAccessRole(user.id, organizationId));
       const allowedClientIds = applyClientPolicy(orgClientIds, accessRole);
       const prefs = await loadPrefs(user.id);
       const session = createSession({
@@ -219,7 +245,7 @@ sessionRouter.post('/session', async (req, res, next) => {
 });
 
 sessionRouter.post('/session/:id/compose', async (req, res) => {
-  const session = sessionOr404(req, res);
+  const session = await requireSession(req, res);
   if (!session) return;
   const body = parseBody(ComposeRequest, req, res);
   if (!body) return;
@@ -261,7 +287,7 @@ sessionRouter.post('/session/:id/compose', async (req, res) => {
 
     const ents = await entitiesFor(session);
     const on = current(session)?.intent ?? null;
-    const { parsed, source } = await parseIntent(
+    const { parsed, degraded: intentDegraded } = await parseIntent(
       body.text,
       {
         clients: ents.clients,
@@ -273,7 +299,7 @@ sessionRouter.post('/session/:id/compose', async (req, res) => {
       stream.signal,
     );
     if (stream.signal.aborted) return;
-    const degraded = source !== 'llm' && body.text.trim() !== '';
+    const degraded = intentDegraded;
     const result = finalizeIntent(
       parsed,
       on?.scope ?? null,
@@ -296,7 +322,7 @@ sessionRouter.post('/session/:id/compose', async (req, res) => {
 });
 
 sessionRouter.post('/session/:id/resolve', async (req, res) => {
-  const session = sessionOr404(req, res);
+  const session = await requireSession(req, res);
   if (!session) return;
   const body = parseBody(ResolveRequest, req, res);
   if (!body) return;
@@ -322,8 +348,8 @@ sessionRouter.post('/session/:id/resolve', async (req, res) => {
   });
 });
 
-sessionRouter.post('/session/:id/back', (req, res) => {
-  const session = sessionOr404(req, res);
+sessionRouter.post('/session/:id/back', async (req, res) => {
+  const session = await requireSession(req, res);
   if (!session) return;
   release(session, supersede(session));
   const shown = current(session);
@@ -337,7 +363,7 @@ sessionRouter.post('/session/:id/back', (req, res) => {
 });
 
 sessionRouter.post('/session/:id/home', async (req, res, next) => {
-  const session = sessionOr404(req, res);
+  const session = await requireSession(req, res);
   if (!session) return;
   session.pinned.clear();
   session.dismissed.clear();
@@ -365,7 +391,7 @@ function recompose(session: Session, res: Response, next: (err: unknown) => void
 }
 
 sessionRouter.post('/session/:id/pin', async (req, res, next) => {
-  const session = sessionOr404(req, res);
+  const session = await requireSession(req, res);
   if (!session) return;
   const body = parseBody(PinRequest, req, res);
   if (!body) return;
@@ -386,7 +412,7 @@ sessionRouter.post('/session/:id/pin', async (req, res, next) => {
 });
 
 sessionRouter.post('/session/:id/dismiss', async (req, res, next) => {
-  const session = sessionOr404(req, res);
+  const session = await requireSession(req, res);
   if (!session) return;
   const body = parseBody(DismissRequest, req, res);
   if (!body) return;

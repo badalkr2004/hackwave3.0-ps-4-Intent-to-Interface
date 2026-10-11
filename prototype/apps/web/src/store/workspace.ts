@@ -12,6 +12,7 @@ import {
   type UISpec,
 } from '@gestalt/shared';
 import * as api from '../lib/api';
+import { isSessionGone } from '../lib/api';
 import { postStream } from '../lib/sse';
 import type { ActionItem } from '../panels/types';
 
@@ -172,25 +173,64 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     }
   };
 
+  /** Recreate the server session once after a process restart / TTL expiry, then retry. */
+  const recoverSession = async (): Promise<boolean> => {
+    try {
+      const s = await api.createSession();
+      set({
+        sessionId: s.sessionId,
+        clients: s.entities.clients,
+        projects: s.entities.projects,
+        demoPrompts: s.demoPrompts,
+        spec: s.spec,
+        history: [],
+        degraded: s.spec.degraded,
+        clarification: null,
+        announcement: rearrangedText(s.spec),
+        error: null,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const stream = async (action: 'compose' | 'resolve', body: Record<string, unknown>) => {
-    const sessionId = get().sessionId;
-    if (!sessionId) return;
     inflight?.abort();
     const ctrl = new AbortController();
     inflight = ctrl;
     const requestId = nextRequestId();
     streamStartedAt = performance.now();
     set({ phase: 'composing', stage: null, requestId, error: null });
-    try {
+
+    const run = async () => {
+      const sessionId = get().sessionId;
+      if (!sessionId) throw new Error('No session');
       await postStream(
         api.sessionUrl(sessionId, action),
         { ...body, requestId },
         { signal: ctrl.signal, onEvent, isCurrent: () => get().requestId === requestId },
       );
+    };
+
+    try {
+      await run();
       if (get().requestId === requestId && get().phase === 'composing')
         set({ phase: 'idle', stage: null });
     } catch (err) {
       if (ctrl.signal.aborted || get().requestId !== requestId) return;
+      if (isSessionGone(err) && (await recoverSession()) && get().requestId === requestId) {
+        try {
+          await run();
+          if (get().requestId === requestId && get().phase === 'composing')
+            set({ phase: 'idle', stage: null });
+          return;
+        } catch (retryErr) {
+          if (ctrl.signal.aborted || get().requestId !== requestId) return;
+          fail(retryErr);
+          return;
+        }
+      }
       fail(err);
     }
   };
@@ -200,20 +240,39 @@ export const useWorkspace = create<WorkspaceState>()((set, get) => {
     fn: (sessionId: string) => Promise<UISpec>,
     after?: (spec: UISpec) => void,
   ) => {
-    const sessionId = get().sessionId;
-    if (!sessionId) return;
     inflight?.abort();
     const requestId = nextRequestId();
     set({ requestId });
     const isCurrent = () => get().requestId === requestId;
+
+    const run = async () => {
+      const sessionId = get().sessionId;
+      if (!sessionId) throw new Error('No session');
+      return fn(sessionId);
+    };
+
     try {
-      const spec = await fn(sessionId);
+      const spec = await run();
       if (!isCurrent()) return;
       set({ phase: 'idle', stage: null, error: null });
       if (after) after(spec);
       else showSpec(spec);
     } catch (err) {
-      if (isCurrent()) fail(err);
+      if (!isCurrent()) return;
+      if (isSessionGone(err) && (await recoverSession()) && isCurrent()) {
+        try {
+          const spec = await run();
+          if (!isCurrent()) return;
+          set({ phase: 'idle', stage: null, error: null });
+          if (after) after(spec);
+          else showSpec(spec);
+          return;
+        } catch (retryErr) {
+          if (isCurrent()) fail(retryErr);
+          return;
+        }
+      }
+      fail(err);
     }
   };
 

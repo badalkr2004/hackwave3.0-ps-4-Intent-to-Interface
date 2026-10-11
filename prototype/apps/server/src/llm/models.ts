@@ -1,4 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createGroq } from '@ai-sdk/groq';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createProviderRegistry, type LanguageModel } from 'ai';
@@ -11,11 +12,14 @@ const providers = {
     : {}),
   ...(env.OPENAI_API_KEY ? { openai: createOpenAI({ apiKey: env.OPENAI_API_KEY }) } : {}),
   ...(env.GROQ_API_KEY ? { groq: createGroq({ apiKey: env.GROQ_API_KEY }) } : {}),
+  ...(env.GOOGLE_API_KEY
+    ? { google: createGoogleGenerativeAI({ apiKey: env.GOOGLE_API_KEY }) }
+    : {}),
 };
 
 const registry = createProviderRegistry(providers);
 
-/** `provider:modelId`, e.g. "groq:openai/gpt-oss-120b". */
+/** `provider:modelId`, e.g. "google:gemini-3.8-flash" or "groq:openai/gpt-oss-120b". */
 export function resolveModel(spec: string): LanguageModel {
   return registry.languageModel(spec as `${keyof typeof providers & string}:${string}`);
 }
@@ -27,6 +31,18 @@ export function llmAvailable(spec: string): boolean {
 /** True when the app should run on fixtures and rules only. */
 export function fallbackMode(): boolean {
   return env.FORCE_FALLBACK || !llmAvailable(env.MODEL_FAST) || !llmAvailable(env.MODEL_WRITE);
+}
+
+/** Secondary model for a primary `provider:modelId` when the primary call fails. */
+export function fallbackModelFor(primary: string): string | undefined {
+  const fb =
+    primary === env.MODEL_FAST
+      ? env.MODEL_FAST_FALLBACK
+      : primary === env.MODEL_WRITE
+        ? env.MODEL_WRITE_FALLBACK
+        : undefined;
+  if (!fb || fb === primary || !llmAvailable(fb)) return undefined;
+  return fb;
 }
 
 /** The single place for provider-specific tuning. */

@@ -42,6 +42,7 @@ export function App() {
       {(access) => (
         <WorkspaceApp
           activeOrg={access.status === 'ready' ? access.activeOrg : null}
+          scopeLabel={access.status === 'ready' ? access.scopeLabel : null}
           onAuthChange={() => window.location.assign('/login')}
         />
       )}
@@ -51,9 +52,11 @@ export function App() {
 
 function WorkspaceApp({
   activeOrg,
+  scopeLabel,
   onAuthChange,
 }: {
   activeOrg: OrgSummary | null;
+  scopeLabel: string | null;
   onAuthChange: () => void;
 }) {
   const s = useWorkspace();
@@ -168,10 +171,15 @@ function WorkspaceApp({
             </button>
             {activeOrg?.accessRole && (
               <span
-                className="hidden rounded-sm bg-accent-bg px-2 py-1 text-xs font-medium tracking-wide text-accent-text uppercase sm:inline"
-                title="Organization data access role"
+                className="hidden max-w-[14rem] truncate rounded-sm bg-accent-bg px-2 py-1 text-xs font-medium tracking-wide text-accent-text sm:inline"
+                title={scopeLabel ?? 'Organization data access role'}
               >
-                {activeOrg.accessRole}
+                <span className="uppercase">{activeOrg.accessRole}</span>
+                {scopeLabel ? (
+                  <span className="ml-1.5 font-normal normal-case text-accent-text/80">
+                    · {scopeLabel}
+                  </span>
+                ) : null}
               </span>
             )}
             <WhyToggle on={s.lensOn} onToggle={s.toggleLens} />

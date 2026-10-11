@@ -28,9 +28,9 @@
 
 | Sign in | Expect |
 |---|---|
-| `manager@northwind.test` | Full portfolio + sales; chat can surface management notes |
-| `developer@northwind.test` | Engineering-focused panels; tickets tagged bug/technical; no sales_pulse |
-| `intern@northwind.test` | Acme-only clients; no sales/capacity/blockers; chat refuses management-tier asks |
+| `manager@northwind.test` | Full portfolio + sales + Jira/Google writes; chat can surface management ARR notes |
+| `developer@northwind.test` | All clients; eng-tagged story tickets + live Jira (read-only connectors); no sales_pulse / portfolio_health |
+| `intern@northwind.test` | Acme-only; no Jira strip / open_issues / sales / capacity / blockers; calendar view-only; chat has no Jira/sales live sections |
 
 Open the floating **Gestalt chat** FAB on `/app` (or `/chat`). With RAG running, ask normal questions (“Prepare me for Acme”, “Why did usage drop?”, “What Jira tickets are open?”) — answers stream as prose grounded in retrieved docs **plus live Postgres** and **Atlassian Jira** (user Connectors → Jira, or server `JIRA_*` env). Demo story tickets (H-T*, T-*) are labeled separately and only used when live Jira is unavailable. Managers can `POST /api/chat/reindex` to refresh Chroma from DB + Jira. Stop RAG and reopen chat — banner: “Chatbot service: an error occurred”; IntentBar on `/app` still works.
 

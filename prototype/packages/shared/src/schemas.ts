@@ -115,6 +115,7 @@ export const ExclusionReason = z.enum([
   'no_space',
   'not_relevant',
   'dismissed',
+  'role_access',
 ]);
 export type ExclusionReason = z.infer<typeof ExclusionReason>;
 
@@ -213,7 +214,12 @@ export type ProjectRef = z.infer<typeof ProjectRef>;
 export const HealthResponse = z.object({
   ok: z.literal(true),
   llm: z.enum(['live', 'fallback']),
-  models: z.object({ fast: z.string(), write: z.string() }),
+  models: z.object({
+    fast: z.string(),
+    write: z.string(),
+    fastFallback: z.string().optional(),
+    writeFallback: z.string().optional(),
+  }),
   db: z.enum(['up', 'down']),
 });
 export type HealthResponse = z.infer<typeof HealthResponse>;

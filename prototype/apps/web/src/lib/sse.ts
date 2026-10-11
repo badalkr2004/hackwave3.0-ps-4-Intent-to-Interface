@@ -1,4 +1,5 @@
 import { SseEvent } from '@gestalt/shared';
+import { ApiError } from './api';
 
 /**
  * Incremental parser for a `text/event-stream` body. Feed it decoded text in arbitrary chunks;
@@ -60,7 +61,19 @@ export async function postStream(url: string, body: unknown, opts: StreamOptions
   });
   if (!res.ok || !res.body) {
     const detail = await res.text().catch(() => '');
-    throw new Error(`Request failed (${res.status})${detail ? `: ${detail.slice(0, 200)}` : ''}`);
+    let code: string | undefined;
+    try {
+      const json = JSON.parse(detail) as { code?: string; error?: string };
+      code = json.code ?? (res.status === 404 ? 'SESSION_GONE' : undefined);
+      throw new ApiError(json.error || `Request failed (${res.status})`, res.status, code);
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError(
+        `Request failed (${res.status})${detail ? `: ${detail.slice(0, 200)}` : ''}`,
+        res.status,
+        res.status === 404 ? 'SESSION_GONE' : undefined,
+      );
+    }
   }
   await readEvents(res.body, opts);
 }

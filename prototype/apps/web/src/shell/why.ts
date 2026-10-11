@@ -8,6 +8,7 @@ import {
 
 /** Plain-language group titles for people who do not care about auction jargon. */
 export const EXCLUSION_GROUPS: { reason: ExclusionReason; heading: string }[] = [
+  { reason: 'role_access', heading: 'Hidden for your access role' },
   { reason: 'not_relevant', heading: 'Not needed for this job' },
   { reason: 'low_score', heading: 'Less useful right now' },
   { reason: 'no_data', heading: 'No facts available' },

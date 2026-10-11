@@ -24,11 +24,22 @@ const EnvSchema = z.object({
     .refine((s) => s !== 'public', 'DB_SCHEMA must be a dedicated schema, not "public"')
     .default('gestalt'),
   ALLOW_DB_RESET: flag,
-  MODEL_FAST: z.string().default('anthropic:claude-haiku-5-5'),
-  MODEL_WRITE: z.string().default('anthropic:claude-sonnet-5-5'),
+  MODEL_FAST: z.string().default('google:gemini-3.8-flash'),
+  MODEL_WRITE: z.string().default('google:gemini-3.8-flash'),
+  /** Tried once when MODEL_FAST fails (quota / capacity). Empty = no secondary. */
+  MODEL_FAST_FALLBACK: z
+    .string()
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim() : undefined)),
+  MODEL_WRITE_FALLBACK: z
+    .string()
+    .optional()
+    .transform((v) => (v?.trim() ? v.trim() : undefined)),
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
+  /** Google Generative AI (Gemini) — used when MODEL_* starts with `google:`. */
+  GOOGLE_API_KEY: z.string().optional(),
   PORT: z.coerce.number().int().positive().default(8787),
   FORCE_FALLBACK: flag,
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),

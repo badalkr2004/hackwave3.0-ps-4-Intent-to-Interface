@@ -10,7 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { authClient } from '../lib/auth';
-import { fetchMe } from '../lib/orgApi';
+import { fetchMe, type AccessCapabilities } from '../lib/orgApi';
 import {
   confirmGoogleConnect,
   connectJira,
@@ -50,7 +50,11 @@ export function ConnectorsPage() {
   const [projectKey, setProjectKey] = useState('');
   const [apiToken, setApiToken] = useState('');
   const [projects, setProjects] = useState<JiraProject[]>([]);
+  const [caps, setCaps] = useState<AccessCapabilities | null>(null);
   const jiraDialogRef = useRef<HTMLDialogElement>(null);
+  const canWrite = Boolean(caps?.writeConnectors);
+  const canJira = Boolean(caps?.jiraLive);
+  const canGoogle = Boolean(caps?.googleCalendar);
 
   const refresh = async () => {
     const data = await fetchConnectors();
@@ -80,6 +84,7 @@ export function ConnectorsPage() {
         const me = await fetchMe();
         setSignedIn(Boolean(me.user));
         setActiveOrgId(me.activeOrganizationId);
+        setCaps(me.capabilities ?? null);
         if (!me.user) {
           window.location.replace('/login?next=/connectors');
           return;
@@ -288,24 +293,29 @@ export function ConnectorsPage() {
                 </div>
                 <div className="flex flex-wrap gap-2 sm:shrink-0">
                   {isJira &&
-                    (item.connected ? (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void onDisconnectJira()}
-                        className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 text-sm text-text hover:bg-surface-2 disabled:opacity-50"
-                      >
-                        <Unplug className="size-4" aria-hidden />
-                        Disconnect
-                      </button>
-                    ) : (
+                    (!canJira ? (
+                      <span className="text-xs text-muted">Not available for your access role</span>
+                    ) : item.connected ? (
+                      canWrite ? (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void onDisconnectJira()}
+                          className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 text-sm text-text hover:bg-surface-2 disabled:opacity-50"
+                        >
+                          <Unplug className="size-4" aria-hidden />
+                          Disconnect
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted">Connected · read-only for your role</span>
+                      )
+                    ) : canWrite ? (
                       <button
                         type="button"
                         disabled={busy}
                         onClick={() => {
                           setError(null);
                           setAdding(true);
-                          // Open immediately — don't wait for the effect (felt unresponsive before).
                           const dialog = jiraDialogRef.current;
                           if (dialog && !dialog.open) dialog.showModal();
                         }}
@@ -314,19 +324,27 @@ export function ConnectorsPage() {
                         <Plug className="size-4" aria-hidden />
                         Add Jira
                       </button>
+                    ) : (
+                      <span className="text-xs text-muted">Connect requires manager access</span>
                     ))}
                   {isGoogle &&
-                    (item.connected ? (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void onDisconnectGoogle()}
-                        className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 text-sm text-text hover:bg-surface-2 disabled:opacity-50"
-                      >
-                        <Unplug className="size-4" aria-hidden />
-                        Disconnect
-                      </button>
-                    ) : (
+                    (!canGoogle ? (
+                      <span className="text-xs text-muted">Not available for your access role</span>
+                    ) : item.connected ? (
+                      canWrite ? (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void onDisconnectGoogle()}
+                          className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 text-sm text-text hover:bg-surface-2 disabled:opacity-50"
+                        >
+                          <Unplug className="size-4" aria-hidden />
+                          Disconnect
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted">Connected · read-only for your role</span>
+                      )
+                    ) : canWrite ? (
                       <button
                         type="button"
                         disabled={busy || !item.available}
@@ -334,12 +352,14 @@ export function ConnectorsPage() {
                         className="inline-flex min-h-11 items-center gap-2 bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-50"
                       >
                         {busy ? (
-                          <LoaderCircle className="size-4 animate-spin" />
+                          <LoaderCircle className="size-4 animate-spin" aria-hidden />
                         ) : (
                           <Plug className="size-4" aria-hidden />
                         )}
                         Connect Google
                       </button>
+                    ) : (
+                      <span className="text-xs text-muted">Connect requires manager access</span>
                     ))}
                 </div>
               </li>
@@ -515,14 +535,18 @@ export function ConnectorsPage() {
           </section>
 
           <section className="mt-10 border-t border-border pt-8">
-            <JiraTickets projectKey={jira.projectKey} />
+            {canJira ? (
+              <JiraTickets projectKey={jira.projectKey} readOnly={!canWrite} />
+            ) : (
+              <p className="text-sm text-muted">Jira tickets are hidden for your access role.</p>
+            )}
           </section>
         </>
       )}
 
-      {google?.connected && (
+      {google?.connected && canGoogle && (
         <section className="mt-10 border-t border-border pt-8">
-          <GoogleMeetSection orgId={activeOrgId} />
+          <GoogleMeetSection orgId={activeOrgId} compact={!canWrite} />
         </section>
       )}
 

@@ -313,7 +313,8 @@ export function buildStory(today: Date): Story {
       priority: 'high',
       created: at(-16, 9, 40),
       updated: at(-2, 15, 5),
-      tags: ['export', 'v2.4'],
+      // Engineering depth — developers see; interns do not.
+      tags: ['export', 'v2.4', 'bug', 'technical', 'backend'],
       summary:
         'Exports larger than about 10,000 rows time out after 60 seconds since the v2.4 pipeline change.',
     },
@@ -325,7 +326,7 @@ export function buildStory(today: Date): Story {
       priority: 'high',
       created: at(-14, 11, 15),
       updated: at(-3, 10, 20),
-      tags: ['export', 'v2.4', 'scheduled'],
+      tags: ['export', 'v2.4', 'scheduled', 'bug', 'api'],
       summary:
         'Nightly scheduled exports to the finance team stopped arriving; no error is shown or emailed.',
     },
@@ -337,7 +338,8 @@ export function buildStory(today: Date): Story {
       priority: 'medium',
       created: at(-11, 14, 0),
       updated: at(-5, 9, 30),
-      tags: ['export', 'v2.4'],
+      // Public CS surface — visible to intern on Acme.
+      tags: ['export', 'v2.4', 'customer'],
       summary: 'The cost center column present before v2.4 is missing from CSV exports.',
     },
     {
@@ -348,7 +350,7 @@ export function buildStory(today: Date): Story {
       priority: 'low',
       created: at(-9, 16, 10),
       updated: at(-8, 12, 0),
-      tags: ['billing'],
+      tags: ['billing', 'customer'],
       summary: 'Invoice lists 450 seats; the customer counts 410 active seats.',
     },
     {
@@ -359,7 +361,7 @@ export function buildStory(today: Date): Story {
       priority: 'medium',
       created: at(-40, 10, 0),
       updated: at(-30, 17, 0),
-      tags: ['sso'],
+      tags: ['sso', 'technical', 'engineering'],
       summary: 'Identity provider metadata rotated; refreshed and confirmed working.',
     },
     {
@@ -370,7 +372,7 @@ export function buildStory(today: Date): Story {
       priority: 'medium',
       created: at(-7, 13, 0),
       updated: at(-6, 9, 0),
-      tags: ['reports'],
+      tags: ['reports', 'bug', 'technical', 'frontend'],
       summary: 'Saved filters on the weekly report are cleared after a page reload.',
     },
     {
@@ -381,7 +383,7 @@ export function buildStory(today: Date): Story {
       priority: 'low',
       created: at(-20, 9, 0),
       updated: at(-18, 11, 0),
-      tags: ['account'],
+      tags: ['account', 'customer'],
       summary: 'Added three admin seats.',
     },
     {
@@ -392,8 +394,41 @@ export function buildStory(today: Date): Story {
       priority: 'low',
       created: at(-5, 8, 30),
       updated: at(-4, 10, 0),
-      tags: ['alerts', 'email'],
+      tags: ['alerts', 'email', 'customer'],
       summary: 'Alert notifications are flagged as spam by their mail gateway.',
+    },
+    {
+      id: 'T-9',
+      client_id: 'globex',
+      title: 'API rate limit returns 429 under load',
+      status: 'open',
+      priority: 'high',
+      created: at(-6, 10, 0),
+      updated: at(-1, 14, 0),
+      tags: ['api', 'bug', 'technical', 'backend'],
+      summary: 'Globex integration clients hit 429s during peak sync windows.',
+    },
+    {
+      id: 'T-10',
+      client_id: 'initech',
+      title: 'Webhook signature verification failing',
+      status: 'open',
+      priority: 'high',
+      created: at(-4, 11, 0),
+      updated: at(-1, 9, 30),
+      tags: ['api', 'bug', 'engineering', 'backend'],
+      summary: 'Outbound webhooks fail HMAC checks after key rotation.',
+    },
+    {
+      id: 'T-11',
+      client_id: 'acme',
+      title: 'Need training deck for new admins',
+      status: 'open',
+      priority: 'low',
+      created: at(-3, 15, 0),
+      updated: at(-2, 11, 0),
+      tags: ['enablement', 'customer'],
+      summary: 'CS asked for a short admin onboarding deck before the QBR.',
     },
   ];
 

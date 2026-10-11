@@ -21,9 +21,12 @@ function relativeTime(iso: string): string {
 export function JiraTickets({
   compact = false,
   projectKey,
+  readOnly = false,
 }: {
   compact?: boolean;
   projectKey?: string;
+  /** Hide create / resolve when the access role cannot write connectors. */
+  readOnly?: boolean;
 }) {
   const [issues, setIssues] = useState<JiraIssue[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +36,7 @@ export function JiraTickets({
   const [creating, setCreating] = useState(false);
   const [summary, setSummary] = useState('');
   const [description, setDescription] = useState('');
-  const [showCreate, setShowCreate] = useState(!compact);
+  const [showCreate, setShowCreate] = useState(!compact && !readOnly);
 
   const reload = async () => {
     setLoading(true);
@@ -107,7 +110,7 @@ export function JiraTickets({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {compact && (
+          {compact && !readOnly && (
             <button
               type="button"
               onClick={() => setShowCreate((v) => !v)}
@@ -129,7 +132,7 @@ export function JiraTickets({
         </div>
       </div>
 
-      {showCreate && (
+      {showCreate && !readOnly && (
         <form
           onSubmit={(e) => void onCreate(e)}
           className="flex flex-col gap-3 border-t border-border pt-4"
@@ -184,7 +187,9 @@ export function JiraTickets({
           Loading tickets…
         </p>
       ) : shown.length === 0 ? (
-        <p className="text-sm text-muted">No recent tickets. Create one above.</p>
+        <p className="text-sm text-muted">
+          {readOnly ? 'No recent tickets in your access scope.' : 'No recent tickets. Create one above.'}
+        </p>
       ) : (
         <ul className="divide-y divide-border border-t border-border" aria-label="Jira issues">
           {shown.map((issue) => {
@@ -222,7 +227,7 @@ export function JiraTickets({
                     <ExternalLink className="size-3.5" aria-hidden />
                     Open
                   </a>
-                  {!isDone && (
+                  {!readOnly && !isDone && (
                     <button
                       type="button"
                       disabled={resolving === issue.key}

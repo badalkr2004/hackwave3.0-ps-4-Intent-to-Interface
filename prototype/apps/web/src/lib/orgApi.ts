@@ -58,6 +58,15 @@ async function json<T>(url: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+export type AccessCapabilities = {
+  sales: boolean;
+  jiraLive: boolean;
+  googleCalendar: boolean;
+  readConnectors: boolean;
+  writeConnectors: boolean;
+  managementNotes: boolean;
+};
+
 export async function fetchMe(): Promise<{
   authEnabled: boolean;
   googleOAuth?: boolean;
@@ -65,6 +74,9 @@ export async function fetchMe(): Promise<{
   orgs: OrgSummary[];
   activeOrganizationId: string | null;
   accessRole?: AccessRole | null;
+  allowedClientIds?: string[];
+  scopeLabel?: string | null;
+  capabilities?: AccessCapabilities | null;
 }> {
   return json('/api/me');
 }

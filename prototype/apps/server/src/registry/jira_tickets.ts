@@ -1,3 +1,4 @@
+import { capabilitiesFor, filterJiraIssuesForRole } from '../services/accessPolicy';
 import { resolveJiraForSession } from '../services/connectors';
 import { searchRecentIssues } from '../services/jira';
 import { clamp01, defineModule } from './types';
@@ -8,13 +9,17 @@ const MIN_OPEN_TO_BID = 1;
 export default defineModule({
   id: 'jira_tickets',
   async loader(ctx) {
+    const caps = capabilitiesFor(ctx.accessRole);
+    if (!caps.jiraLive) return null;
+
     const access = await resolveJiraForSession(ctx.userId);
     if (!access) return null;
 
-    const issues = await searchRecentIssues(access.creds, {
+    const raw = await searchRecentIssues(access.creds, {
       projectKey: access.projectKey,
       maxResults: 20,
     });
+    const issues = filterJiraIssuesForRole(raw, ctx.accessRole);
     const open = issues.filter((i) => i.statusCategory !== 'done');
     // Insufficient signal → sit out of the auction (compose can still force-focus).
     if (open.length < MIN_OPEN_TO_BID && issues.length === 0) return null;

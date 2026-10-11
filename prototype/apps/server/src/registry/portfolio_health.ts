@@ -1,9 +1,12 @@
+import { capabilitiesFor } from '../services/accessPolicy';
 import { loadClients, loadUsageAnalyses } from './usage';
 import { defineModule, dayOf, effectiveClientIds } from './types';
 
 export default defineModule({
   id: 'portfolio_health',
   async loader(ctx) {
+    // ARR / portfolio risk is management-tier; developers & interns are excluded.
+    if (!capabilitiesFor(ctx.accessRole).sales) return null;
     const { db } = ctx;
     const { sql } = db;
     const allowed = effectiveClientIds(ctx);

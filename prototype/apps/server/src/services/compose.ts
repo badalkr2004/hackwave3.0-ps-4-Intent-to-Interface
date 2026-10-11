@@ -2,6 +2,7 @@ import {
   MANIFESTS,
   MANIFESTS_BY_ID,
   computeDiff,
+  type Exclusion,
   type Intent,
   type Need,
   type Panel,
@@ -14,7 +15,7 @@ import { startOfDay } from '../lib/dates';
 import { current, pushSpec, type Session } from '../session';
 import { runAuction, type ComponentData, type PlannedPanel } from './auction';
 import { generateCopy, type CopyId } from './copy';
-import { filterNeedsForRole } from './accessPolicy';
+import { capabilitiesFor, filterNeedsForRole } from './accessPolicy';
 import { componentData, loadScopeData, type ScopeData } from './data';
 import { buildDigest, type Digest } from './digest';
 import { planNeeds, withJiraBoost, withPins, withSalesVizBoost } from './needs';
@@ -79,7 +80,7 @@ export async function compose(
   const digest: Digest | null = data ? await buildDigest(data.ctx) : null;
 
   opts.onStage?.('planning');
-  let degraded = opts.degraded;
+  let degraded = opts.degraded || !data;
   let baseNeeds = opts.reuseNeeds;
   if (!baseNeeds) {
     const planned = await planNeeds(intent.shape, digest, intent.scope.clientId, opts.signal);
@@ -98,7 +99,7 @@ export async function compose(
   const {
     panels: planned,
     receipts,
-    excluded,
+    excluded: auctionExcluded,
   } = runAuction({
     shape: intent.shape,
     needs,
@@ -107,6 +108,22 @@ export async function compose(
     pinned: session.pinned,
     dismissed: session.dismissed,
   });
+
+  const caps = capabilitiesFor(session.accessRole);
+  const roleExcluded: Exclusion[] = caps.excludedPanels.map((componentId) => {
+    const m = MANIFESTS_BY_ID[componentId];
+    return {
+      componentId,
+      title: m?.title ?? componentId,
+      reason: 'role_access' as const,
+      detail: `Hidden for ${session.accessRole ?? 'manager'} access`,
+    };
+  });
+  const seen = new Set(roleExcluded.map((e) => e.componentId));
+  const excluded = [
+    ...roleExcluded,
+    ...auctionExcluded.filter((e) => !seen.has(e.componentId)),
+  ];
 
   if (session.preferredViz) featureSalesPulse(planned);
   if (session.jiraFocus) featureJiraTickets(planned);
@@ -148,6 +165,9 @@ export async function compose(
     };
   });
 
+  // Empty auction (DB down / all loaders null) is a silent blank without this flag.
+  if (panels.length === 0) degraded = true;
+
   const version = session.version + 1;
   const spec: UISpec = {
     id: `${session.id.slice(0, 8)}-v${version}`,
@@ -188,15 +208,19 @@ export async function fillDeferred(
   spec: UISpec,
   jobs: DeferredJob[],
   onPatch?: (panelId: string, ok: boolean, props: Record<string, unknown>) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   await Promise.all(
     jobs.map(async (job) => {
+      if (signal?.aborted) return;
       let result: Awaited<ReturnType<DeferredJob['run']>> = null;
       try {
         result = await job.run();
       } catch {
         result = null;
       }
+      // Superseded/disconnected: never fixture-patch the committed (or about-to-be-stale) spec.
+      if (signal?.aborted) return;
       const ok = result !== null;
       const props = result?.props ?? {};
       if (!ok || result?.degraded) spec.degraded = true;
@@ -213,7 +237,7 @@ export async function composeNow(
   opts: ComposeOptions & { replaceTop: boolean },
 ): Promise<UISpec> {
   const c = await compose(session, intent, opts);
-  await fillDeferred(c.spec, c.deferred);
+  await fillDeferred(c.spec, c.deferred, undefined, opts.signal);
   if (opts.signal?.aborted) throw new SupersededError();
   commit(session, c, opts.replaceTop);
   return c.spec;

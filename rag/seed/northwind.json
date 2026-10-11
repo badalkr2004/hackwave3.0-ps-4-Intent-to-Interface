@@ -82,5 +82,29 @@
     "ticket_id": "GLOB-9",
     "tags": ["bug", "technical", "api"],
     "access_tier": "engineering"
+  },
+  {
+    "id": "ticket:T-4-billing",
+    "title": "T-4 Invoice seat count (public CS)",
+    "text": "Public CS ticket T-4 for Acme: invoice shows wrong seat count. Tags: billing, customer. Safe for intern access on Acme-only scope.",
+    "source_type": "ticket",
+    "org_id": "org_northwind",
+    "client_id": "acme",
+    "date": "2026-10-08",
+    "ticket_id": "T-4",
+    "tags": ["billing", "customer"],
+    "access_tier": "public"
+  },
+  {
+    "id": "mom:acme-arr-renewal",
+    "title": "Acme ARR renewal forecast",
+    "text": "Management note: Acme ARR renewal forecast and discount contingency if export SLA slips. Pipeline and renewal language for managers only.",
+    "source_type": "mom",
+    "org_id": "org_northwind",
+    "client_id": "acme",
+    "date": "2026-10-10",
+    "ticket_id": null,
+    "tags": ["meeting", "mom", "management", "arr", "renewal"],
+    "access_tier": "management"
   }
 ]

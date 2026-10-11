@@ -12,7 +12,7 @@ import {
 } from '../db/auth-schema';
 import { getDrizzle } from '../db/drizzle';
 import { getDb } from '../db/client';
-import type { AccessRole } from './accessPolicy';
+import { resolveAccessRole, type AccessRole } from './accessPolicy';
 import { writeAudit } from './audit';
 import { clearDataCache } from './data';
 import { parseMom } from './momParse';
@@ -61,7 +61,7 @@ export async function listOrgsForUser(userId: string): Promise<OrgSummary[]> {
   return rows.map((r) => ({
     ...r,
     role: r.role as OrgRole,
-    accessRole: (r.accessRole ?? 'manager') as AccessRole,
+    accessRole: resolveAccessRole(r.accessRole),
   }));
 }
 

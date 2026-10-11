@@ -106,8 +106,10 @@ export async function generateCopy<K extends CopyId>(
   clientId: string | null,
   signal?: AbortSignal,
 ): Promise<CopyResult<K> | null> {
+  if (signal?.aborted) return null;
   if (id === 'talking_points') {
     const live = await writeTalkingPoints(digest, signal);
+    if (signal?.aborted) return null;
     if (live) return { props: live, degraded: false } as CopyResult<K>;
     const fixture = fixtureTalkingPoints(clientId);
     const guarded = fixture ? guardTalkingPoints(fixture, digest) : null;
@@ -115,6 +117,7 @@ export async function generateCopy<K extends CopyId>(
     return props ? ({ props, degraded: true } as CopyResult<K>) : null;
   }
   const live = await writeHypotheses(digest, signal);
+  if (signal?.aborted) return null;
   if (live) return { props: live, degraded: false } as CopyResult<K>;
   const fixture = fixtureHypotheses(clientId);
   const guarded = fixture ? guardHypotheses(fixture, digest) : null;

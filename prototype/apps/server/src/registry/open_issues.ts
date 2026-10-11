@@ -1,10 +1,14 @@
 import type { Priority } from '@gestalt/shared';
-import { ticketMatchesRole } from '../services/accessPolicy';
+import { capabilitiesFor, ticketMatchesRole } from '../services/accessPolicy';
 import { defineModule, dayOf, effectiveClientIds } from './types';
 
 export default defineModule({
   id: 'open_issues',
   async loader(ctx) {
+    const caps = capabilitiesFor(ctx.accessRole);
+    if (caps.storyTicketsMode === 'none') {
+      return { tickets: [], totalOpen: 0, highCount: 0, recentShare: 0 };
+    }
     const { db } = ctx;
     const { sql } = db;
     const allowed = effectiveClientIds(ctx);

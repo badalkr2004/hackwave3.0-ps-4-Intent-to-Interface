@@ -4,7 +4,7 @@ import { requestUser } from '../lib/requestUser';
 import {
   applyClientPolicy,
   capabilitiesFor,
-  type AccessRole,
+  resolveAccessRole,
 } from '../services/accessPolicy';
 import {
   clientIdsForOrg,
@@ -56,15 +56,16 @@ async function chatContext(req: Parameters<typeof requestUser>[0]): Promise<
     };
   }
   await requireMember(user.id, organizationId);
-  const accessRole = ((await memberAccessRole(user.id, organizationId)) ?? 'manager') as AccessRole;
+  const accessRole = resolveAccessRole(await memberAccessRole(user.id, organizationId));
   const orgClients = await clientIdsForOrg(organizationId);
   const clientIds = [...(applyClientPolicy(orgClients, accessRole) ?? [])];
   const caps = capabilitiesFor(accessRole);
   const capabilityFlags = [
     caps.sales ? 'sales' : '',
-    caps.engineeringTickets ? 'engineering' : '',
+    caps.jiraLive || caps.engineeringTickets ? 'engineering' : '',
     caps.managementNotes ? 'management' : '',
     caps.writeConnectors ? 'write' : '',
+    caps.googleCalendar ? 'calendar' : '',
   ].filter(Boolean);
 
   return {
@@ -151,7 +152,7 @@ chatRouter.post('/chat/ingest', async (req, res, next) => {
       return;
     }
     await requireMember(user.id, organizationId, 'admin');
-    const accessRole = (await memberAccessRole(user.id, organizationId)) ?? 'manager';
+    const accessRole = resolveAccessRole(await memberAccessRole(user.id, organizationId));
     if (accessRole !== 'manager') {
       res.status(403).json({ error: 'Only managers can push documents to the chatbot index.' });
       return;
@@ -182,7 +183,7 @@ chatRouter.post('/chat/reindex', async (req, res, next) => {
       return;
     }
     await requireMember(user.id, organizationId);
-    const accessRole = (await memberAccessRole(user.id, organizationId)) ?? 'manager';
+    const accessRole = resolveAccessRole(await memberAccessRole(user.id, organizationId));
     if (accessRole !== 'manager') {
       res.status(403).json({ error: 'Only managers can reindex chatbot context.' });
       return;

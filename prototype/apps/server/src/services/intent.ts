@@ -159,14 +159,15 @@ export async function parseIntent(
   text: string,
   ctx: ParseContext,
   signal?: AbortSignal,
-): Promise<{ parsed: IntentParseResult; source: IntentSource }> {
+): Promise<{ parsed: IntentParseResult; source: IntentSource; degraded: boolean }> {
   // SPEC-NOTE: multi-reading fixtures for exact demo prompts (e.g. "look into Acme") win over the
   // LLM so the ghost-preview step stays deterministic. Spec order is LLM → fixture; single-reading
   // fixtures still sit behind the LLM.
   const fixture = fixtureIntent(text);
   const fromFixture = fixture ? postProcessIntent(fixture, ctx) : null;
   if (fromFixture && fromFixture.interpretations.length > 1) {
-    return { parsed: fromFixture, source: 'fixture' };
+    // Deterministic demo path — not a soft failure; skip the degraded banner.
+    return { parsed: fromFixture, source: 'fixture', degraded: false };
   }
 
   if (!fallbackMode() && text.trim()) {
@@ -183,12 +184,12 @@ export async function parseIntent(
       signal,
     });
     const parsed = res.ok ? postProcessIntent(res.data, ctx) : null;
-    if (parsed) return { parsed, source: 'llm' };
+    if (parsed) return { parsed, source: 'llm', degraded: false };
     log.warn('Intent LLM call failed; falling back', {
       error: res.ok ? 'no usable interpretations' : res.error,
     });
   }
-  if (fromFixture) return { parsed: fromFixture, source: 'fixture' };
+  if (fromFixture) return { parsed: fromFixture, source: 'fixture', degraded: true };
   return {
     parsed: keywordIntent(text, {
       clients: ctx.clients,
@@ -196,6 +197,7 @@ export async function parseIntent(
       defaultClientId: ctx.defaultClientId,
     }),
     source: 'keyword',
+    degraded: text.trim() !== '',
   };
 }
 
