@@ -6,25 +6,33 @@ import {
   LoaderCircle,
   Plug,
   Unplug,
+  Video,
 } from 'lucide-react';
+import { authClient } from '../lib/auth';
 import { fetchMe } from '../lib/orgApi';
 import {
+  confirmGoogleConnect,
   connectJira,
+  disconnectGoogle,
   disconnectJira,
   fetchConnectors,
   fetchJiraProjects,
   patchJiraSettings,
   type ConnectorCatalogItem,
+  type GoogleConnector,
   type JiraConnector,
   type JiraProject,
 } from '../lib/connectorsApi';
+import { GoogleMeetSection } from './GoogleMeetSection';
 import { JiraTickets } from './JiraTickets';
 
 export function ConnectorsPage() {
   const [booting, setBooting] = useState(true);
   const [signedIn, setSignedIn] = useState(false);
+  const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<ConnectorCatalogItem[]>([]);
   const [jira, setJira] = useState<JiraConnector | null>(null);
+  const [google, setGoogle] = useState<GoogleConnector | null>(null);
   const [defaults, setDefaults] = useState({
     hasServerToken: false,
     baseUrl: '',
@@ -45,6 +53,7 @@ export function ConnectorsPage() {
     const data = await fetchConnectors();
     setCatalog(data.catalog);
     setJira(data.jira);
+    setGoogle(data.google);
     setDefaults(data.defaults);
     if (!data.jira.connected) {
       setBaseUrl((v) => v || data.defaults.baseUrl);
@@ -67,11 +76,37 @@ export function ConnectorsPage() {
       try {
         const me = await fetchMe();
         setSignedIn(Boolean(me.user));
+        setActiveOrgId(me.activeOrganizationId);
         if (!me.user) {
           window.location.replace('/login?next=/connectors');
           return;
         }
         await refresh();
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('google_error') === '1' || params.get('error')) {
+          const code = params.get('error') ?? 'link_failed';
+          setError(`Google connect failed (${code}). Try Connect Google again.`);
+          params.delete('google_error');
+          params.delete('error');
+          params.delete('error_description');
+          window.history.replaceState(
+            {},
+            '',
+            `${window.location.pathname}${params.toString() ? `?${params}` : ''}`,
+          );
+        } else if (params.get('google') === '1') {
+          try {
+            const { google: g } = await confirmGoogleConnect();
+            setGoogle(g);
+            setNotice(`Google Meet connected as ${g.email ?? 'your account'}`);
+            await refresh();
+          } catch (e) {
+            setError(e instanceof Error ? e.message : 'Google connect incomplete');
+          }
+          params.delete('google');
+          const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
+          window.history.replaceState({}, '', next);
+        }
       } catch (e) {
         const err = e as Error & { code?: string; status?: number };
         if (err.code === 'AUTH_REQUIRED' || err.status === 401) {
@@ -85,7 +120,7 @@ export function ConnectorsPage() {
     })();
   }, []);
 
-  const onConnect = async (e: FormEvent) => {
+  const onConnectJira = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
@@ -109,7 +144,7 @@ export function ConnectorsPage() {
     }
   };
 
-  const onDisconnect = async () => {
+  const onDisconnectJira = async () => {
     setBusy(true);
     setError(null);
     try {
@@ -120,6 +155,37 @@ export function ConnectorsPage() {
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not disconnect');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onConnectGoogle = () => {
+    setBusy(true);
+    setError(null);
+    // Already signed in — link Google to this user (do not use signIn.social).
+    // Pass Calendar/Drive scopes explicitly so re-consent grants Meet permissions.
+    void authClient.linkSocial({
+      provider: 'google',
+      callbackURL: '/connectors?google=1',
+      errorCallbackURL: '/connectors?google_error=1',
+      scopes: [
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/drive.readonly',
+      ],
+    });
+  };
+
+  const onDisconnectGoogle = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const { google: next } = await disconnectGoogle();
+      setGoogle(next);
+      setNotice('Google Meet disconnected from Gestalt (your Google sign-in may remain).');
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not disconnect Google');
     } finally {
       setBusy(false);
     }
@@ -156,8 +222,8 @@ export function ConnectorsPage() {
         <p className="text-xs font-medium tracking-[0.14em] text-muted uppercase">Tools</p>
         <h1 className="mt-2 font-display text-3xl tracking-tight text-text">Connectors</h1>
         <p className="mt-3 text-base leading-relaxed text-muted">
-          Add tools Gestalt can use for live context and actions. Connect Jira to bring recent
-          tickets into your workspace and resolve or create issues without leaving the dashboard.
+          Add tools Gestalt can use for live context and actions — Jira tickets, Google Meet
+          scheduling, transcripts, and MoM.
         </p>
       </div>
 
@@ -166,50 +232,102 @@ export function ConnectorsPage() {
           Available tools
         </h2>
         <ul className="mt-5 divide-y divide-border border-y border-border">
-          {catalog.map((item) => (
-            <li key={item.id} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 inline-flex size-10 items-center justify-center rounded-md bg-accent-bg text-accent-text">
-                  <Cable className="size-5" aria-hidden />
-                </span>
-                <div>
-                  <p className="font-medium text-text">{item.name}</p>
-                  <p className="mt-1 max-w-md text-sm text-muted">{item.description}</p>
-                  {item.connected && jira?.displayName && (
-                    <p className="mt-1.5 flex items-center gap-1.5 text-xs text-success">
-                      <Check className="size-3.5" aria-hidden />
-                      Connected as {jira.displayName}
-                      {jira.usingServerToken ? ' · using server API key' : ''}
-                    </p>
-                  )}
+          {catalog.map((item) => {
+            const isJira = item.id === 'jira';
+            const isGoogle = item.id === 'google';
+            return (
+              <li
+                key={item.id}
+                className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 inline-flex size-10 items-center justify-center rounded-md bg-accent-bg text-accent-text">
+                    {isGoogle ? (
+                      <Video className="size-5" aria-hidden />
+                    ) : (
+                      <Cable className="size-5" aria-hidden />
+                    )}
+                  </span>
+                  <div>
+                    <p className="font-medium text-text">{item.name}</p>
+                    <p className="mt-1 max-w-md text-sm text-muted">{item.description}</p>
+                    {isJira && item.connected && jira?.displayName && (
+                      <p className="mt-1.5 flex items-center gap-1.5 text-xs text-success">
+                        <Check className="size-3.5" aria-hidden />
+                        Connected as {jira.displayName}
+                        {jira.usingServerToken ? ' · using server API key' : ''}
+                      </p>
+                    )}
+                    {isGoogle && item.connected && google?.email && (
+                      <p className="mt-1.5 flex items-center gap-1.5 text-xs text-success">
+                        <Check className="size-3.5" aria-hidden />
+                        Connected as {google.email}
+                      </p>
+                    )}
+                    {isGoogle && !item.available && (
+                      <p className="mt-1.5 text-xs text-warn">
+                        Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET on the server.
+                      </p>
+                    )}
+                    {isGoogle && google?.missingScopes && (
+                      <p className="mt-1.5 text-xs text-warn">
+                        Missing Calendar/Drive scopes — connect again and accept all permissions.
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-wrap gap-2 sm:shrink-0">
-                {item.connected ? (
-                  <>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => void onDisconnect()}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 text-sm text-text hover:bg-surface-2 disabled:opacity-50"
-                    >
-                      <Unplug className="size-4" aria-hidden />
-                      Disconnect
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setAdding(true)}
-                    className="inline-flex min-h-11 items-center gap-2 bg-accent px-4 text-sm font-medium text-on-accent"
-                  >
-                    <Plug className="size-4" aria-hidden />
-                    Add Jira
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
+                <div className="flex flex-wrap gap-2 sm:shrink-0">
+                  {isJira &&
+                    (item.connected ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void onDisconnectJira()}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 text-sm text-text hover:bg-surface-2 disabled:opacity-50"
+                      >
+                        <Unplug className="size-4" aria-hidden />
+                        Disconnect
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setAdding(true)}
+                        className="inline-flex min-h-11 items-center gap-2 bg-accent px-4 text-sm font-medium text-on-accent"
+                      >
+                        <Plug className="size-4" aria-hidden />
+                        Add Jira
+                      </button>
+                    ))}
+                  {isGoogle &&
+                    (item.connected ? (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void onDisconnectGoogle()}
+                        className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-4 text-sm text-text hover:bg-surface-2 disabled:opacity-50"
+                      >
+                        <Unplug className="size-4" aria-hidden />
+                        Disconnect
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={busy || !item.available}
+                        onClick={onConnectGoogle}
+                        className="inline-flex min-h-11 items-center gap-2 bg-accent px-4 text-sm font-medium text-on-accent disabled:opacity-50"
+                      >
+                        {busy ? (
+                          <LoaderCircle className="size-4 animate-spin" />
+                        ) : (
+                          <Plug className="size-4" aria-hidden />
+                        )}
+                        Connect Google
+                      </button>
+                    ))}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -224,7 +342,7 @@ export function ConnectorsPage() {
               ? ' A server API key is already configured — you can leave the token blank.'
               : ' Paste an Atlassian API token (Account → Security → API tokens).'}
           </p>
-          <form onSubmit={(e) => void onConnect(e)} className="mt-6 flex flex-col gap-5">
+          <form onSubmit={(e) => void onConnectJira(e)} className="mt-6 flex flex-col gap-5">
             <label className="text-xs font-medium tracking-wide text-muted uppercase">
               Site URL
               <input
@@ -266,7 +384,9 @@ export function ConnectorsPage() {
                 required={!defaults.hasServerToken}
                 value={apiToken}
                 onChange={(e) => setApiToken(e.target.value)}
-                placeholder={defaults.hasServerToken ? 'Leave blank to use server key' : 'Atlassian API token'}
+                placeholder={
+                  defaults.hasServerToken ? 'Leave blank to use server key' : 'Atlassian API token'
+                }
                 className="mt-2 min-h-12 w-full border-0 border-b border-border-strong bg-transparent px-0 text-base text-text outline-none focus:border-accent"
               />
             </label>
@@ -341,6 +461,12 @@ export function ConnectorsPage() {
             <JiraTickets projectKey={jira.projectKey} />
           </section>
         </>
+      )}
+
+      {google?.connected && (
+        <section className="mt-10 border-t border-border pt-8">
+          <GoogleMeetSection orgId={activeOrgId} />
+        </section>
       )}
 
       {notice && (

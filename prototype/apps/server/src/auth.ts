@@ -18,11 +18,20 @@ function createAuth() {
           google: {
             clientId: env.GOOGLE_CLIENT_ID,
             clientSecret: env.GOOGLE_CLIENT_SECRET,
+            // Better Auth reads `scope` (singular). Calendar + Drive for Meet.
+            scope: [
+              'https://www.googleapis.com/auth/calendar',
+              'https://www.googleapis.com/auth/drive.readonly',
+              'https://www.googleapis.com/auth/userinfo.email',
+              'https://www.googleapis.com/auth/userinfo.profile',
+            ],
+            accessType: 'offline' as const,
+            prompt: 'consent' as const,
           },
         }
       : undefined;
 
-  if (socialProviders) log.info('Google OAuth enabled for Better Auth.');
+  if (socialProviders) log.info('Google OAuth enabled for Better Auth (Calendar + Drive scopes).');
 
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -42,6 +51,18 @@ function createAuth() {
       minPasswordLength: 8,
     },
     socialProviders,
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ['google'],
+        // Connect Google is for Calendar/Meet tokens — the Google identity may
+        // differ from the Gestalt login email (common in demos / work accounts).
+        allowDifferentEmails: true,
+        // Email/password demo users are often unverified; without this, OAuth
+        // sign-in matching that email returns account_not_linked.
+        requireLocalEmailVerified: false,
+      },
+    },
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,

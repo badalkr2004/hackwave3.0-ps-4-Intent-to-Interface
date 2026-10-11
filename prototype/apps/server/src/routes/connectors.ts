@@ -3,11 +3,19 @@ import { z } from 'zod';
 import { requestUser } from '../lib/requestUser';
 import {
   connectJira,
+  disconnectGoogle,
   disconnectJira,
   jiraCredentialsForUser,
   listConnectors,
+  markGoogleConnected,
   updateJiraSettings,
 } from '../services/connectors';
+import {
+  generateMomFromGoogleMeeting,
+  listGoogleMeetings,
+  scheduleGoogleMeeting,
+  syncGoogleMeetingArtifacts,
+} from '../services/googleMeet';
 import {
   createIssue,
   listProjects,
@@ -165,5 +173,100 @@ connectorsRouter.post('/connectors/jira/issues/:key/resolve', async (req, res) =
     res.json(result);
   } catch (e) {
     res.status(400).json({ error: e instanceof Error ? e.message : 'Could not resolve issue' });
+  }
+});
+
+/** After Better Auth Google OAuth returns, mark the Meet connector connected. */
+connectorsRouter.post('/connectors/google/connect', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const google = await markGoogleConnected(user.id);
+    res.json({ google });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Could not connect Google' });
+  }
+});
+
+connectorsRouter.delete('/connectors/google', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const google = await disconnectGoogle(user.id);
+    res.json({ google });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Could not disconnect Google' });
+  }
+});
+
+connectorsRouter.get('/connectors/google/meetings', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  try {
+    const meetings = await listGoogleMeetings(user.id);
+    res.json({ meetings });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Could not list meetings' });
+  }
+});
+
+connectorsRouter.post('/connectors/google/meetings', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const body = z
+    .object({
+      title: z.string().min(1).max(200),
+      startsAt: z.string().min(8),
+      endsAt: z.string().min(8),
+      attendees: z.array(z.string().email()).max(50).default([]),
+      description: z.string().max(8000).optional(),
+      clientId: z.string().max(64).nullable().optional(),
+    })
+    .safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: 'Provide title, start, end, and valid attendee emails.' });
+    return;
+  }
+  try {
+    const meeting = await scheduleGoogleMeeting(user.id, {
+      ...body.data,
+      clientId: body.data.clientId ?? null,
+    });
+    res.status(201).json({ meeting });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Could not schedule meeting' });
+  }
+});
+
+connectorsRouter.post('/connectors/google/meetings/:id/sync', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const meetingId = String(req.params.id || '').trim();
+  if (!meetingId) {
+    res.status(400).json({ error: 'Meeting id required.' });
+    return;
+  }
+  try {
+    const meeting = await syncGoogleMeetingArtifacts(user.id, meetingId);
+    res.json({ meeting });
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Could not sync artifacts' });
+  }
+});
+
+connectorsRouter.post('/connectors/google/meetings/:id/mom', async (req, res) => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const meetingId = String(req.params.id || '').trim();
+  const body = z.object({ clientId: z.string().min(1).max(64) }).safeParse(req.body);
+  if (!meetingId || !body.success) {
+    res.status(400).json({ error: 'Meeting id and clientId are required.' });
+    return;
+  }
+  try {
+    const result = await generateMomFromGoogleMeeting(user.id, meetingId, body.data.clientId);
+    res.json(result);
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'Could not generate MoM' });
   }
 });

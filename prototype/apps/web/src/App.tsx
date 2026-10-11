@@ -22,6 +22,7 @@ import { WhyToggle } from './shell/WhyToggle';
 import { ThemeToggle } from './shell/ThemeToggle';
 import { ZoneGrid } from './shell/ZoneGrid';
 import { VitalsBar } from './shell/VitalsBar';
+import { GoogleDashboardStrip } from './connectors/GoogleDashboardStrip';
 import { JiraDashboardStrip } from './connectors/JiraDashboardStrip';
 import { useWorkspace } from './store/workspace';
 import type { OrgSummary } from './lib/orgApi';
@@ -243,6 +244,10 @@ function WorkspaceApp({
                   onDismiss={(id) => void s.dismiss(id)}
                 />
                 <JiraDashboardStrip signedIn={Boolean(activeOrg)} />
+                <GoogleDashboardStrip
+                  signedIn={Boolean(activeOrg)}
+                  orgId={activeOrg?.id ?? null}
+                />
                 {s.lensOn && (
                   <WhyDrawer
                     spec={s.spec}

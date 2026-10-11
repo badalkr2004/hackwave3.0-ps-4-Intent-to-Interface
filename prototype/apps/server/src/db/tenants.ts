@@ -46,7 +46,7 @@ export async function seedTenants(sql: Sql, schema: string): Promise<void> {
 
     // Wipe org-scoped tables so reseeds never leave cross-tenant client links.
     await tx`
-      TRUNCATE organization_audit_log, org_action_item, meeting_minutes,
+      TRUNCATE organization_audit_log, org_action_item, google_meeting, meeting_minutes,
         organization_invite, organization_client, organization_member,
         user_workspace_prefs, organization,
         sales_opportunity, marketing_campaign, marketing_channel_daily

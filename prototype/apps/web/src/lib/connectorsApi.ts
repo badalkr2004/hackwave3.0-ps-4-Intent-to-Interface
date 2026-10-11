@@ -10,8 +10,18 @@ export type JiraConnector = {
   usingServerToken: boolean;
 };
 
+export type GoogleConnector = {
+  id: 'google';
+  connected: boolean;
+  email?: string;
+  scopes?: string;
+  connectedAt?: string;
+  oauthConfigured: boolean;
+  missingScopes: boolean;
+};
+
 export type ConnectorCatalogItem = {
-  id: 'jira';
+  id: 'jira' | 'google';
   name: string;
   description: string;
   connected: boolean;
@@ -33,6 +43,25 @@ export type JiraIssue = {
 };
 
 export type JiraProject = { key: string; name: string; id: string };
+
+export type GoogleMeeting = {
+  id: string;
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  meetLink: string | null;
+  htmlLink: string | null;
+  attendees: Array<{ email: string; displayName?: string | null; responseStatus?: string | null }>;
+  attendance: Array<{ email: string; displayName?: string | null; responseStatus?: string | null }>;
+  clientId: string | null;
+  status: 'scheduled' | 'completed' | 'cancelled';
+  recordingUrl: string | null;
+  recordingFileId: string | null;
+  transcriptFileId: string | null;
+  hasTranscript: boolean;
+  meetingMinutesId: string | null;
+  calendarEventId: string;
+};
 
 async function json<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, {
@@ -57,6 +86,7 @@ export function fetchConnectors() {
   return json<{
     catalog: ConnectorCatalogItem[];
     jira: JiraConnector;
+    google: GoogleConnector;
     defaults: {
       hasServerToken: boolean;
       baseUrl: string;
@@ -115,5 +145,48 @@ export function resolveJiraIssue(key: string) {
   return json<{ key: string; status: string }>(
     `/api/connectors/jira/issues/${encodeURIComponent(key)}/resolve`,
     { method: 'POST', body: '{}' },
+  );
+}
+
+export function confirmGoogleConnect() {
+  return json<{ google: GoogleConnector }>('/api/connectors/google/connect', {
+    method: 'POST',
+    body: '{}',
+  });
+}
+
+export function disconnectGoogle() {
+  return json<{ google: GoogleConnector }>('/api/connectors/google', { method: 'DELETE' });
+}
+
+export function fetchGoogleMeetings() {
+  return json<{ meetings: GoogleMeeting[] }>('/api/connectors/google/meetings');
+}
+
+export function scheduleGoogleMeeting(body: {
+  title: string;
+  startsAt: string;
+  endsAt: string;
+  attendees: string[];
+  description?: string;
+  clientId?: string | null;
+}) {
+  return json<{ meeting: GoogleMeeting }>('/api/connectors/google/meetings', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export function syncGoogleMeeting(id: string) {
+  return json<{ meeting: GoogleMeeting }>(
+    `/api/connectors/google/meetings/${encodeURIComponent(id)}/sync`,
+    { method: 'POST', body: '{}' },
+  );
+}
+
+export function generateGoogleMom(id: string, clientId: string) {
+  return json<{ meeting: GoogleMeeting; mom: { id: string; title: string; commitmentsCreated: number } }>(
+    `/api/connectors/google/meetings/${encodeURIComponent(id)}/mom`,
+    { method: 'POST', body: JSON.stringify({ clientId }) },
   );
 }

@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { userWorkspacePrefs, type StoredConnectors } from '../db/auth-schema';
 import { getDrizzle } from '../db/drizzle';
+import { googleMeetConnected, googleOAuthConfigured } from './googleAuth';
 import { envJiraDefaults, resolveCredentials, tryEnvCredentials, verifyJira } from './jira';
 
 export type PublicJiraConnector = {
@@ -15,8 +16,18 @@ export type PublicJiraConnector = {
   usingServerToken: boolean;
 };
 
+export type PublicGoogleConnector = {
+  id: 'google';
+  connected: boolean;
+  email?: string;
+  scopes?: string;
+  connectedAt?: string;
+  oauthConfigured: boolean;
+  missingScopes: boolean;
+};
+
 export type PublicConnectorCatalogItem = {
-  id: 'jira';
+  id: 'jira' | 'google';
   name: string;
   description: string;
   connected: boolean;
@@ -79,17 +90,36 @@ export function toPublicJira(stored: StoredConnectors): PublicJiraConnector {
   };
 }
 
+export function toPublicGoogle(
+  stored: StoredConnectors,
+  live: Awaited<ReturnType<typeof googleMeetConnected>>,
+): PublicGoogleConnector {
+  return {
+    id: 'google',
+    connected: live.connected,
+    email: live.email ?? stored.google?.email,
+    scopes: live.scopes ?? stored.google?.scopes,
+    connectedAt: stored.google?.connectedAt,
+    oauthConfigured: live.oauthConfigured,
+    missingScopes: live.missingScopes,
+  };
+}
+
 export async function listConnectors(userId: string): Promise<{
   catalog: PublicConnectorCatalogItem[];
   jira: PublicJiraConnector;
+  google: PublicGoogleConnector;
   defaults: ReturnType<typeof envJiraDefaults>;
 }> {
   const stored = await loadStoredConnectors(userId);
   const jira = toPublicJira(stored);
+  const liveGoogle = await googleMeetConnected(userId);
+  const google = toPublicGoogle(stored, liveGoogle);
   const defaults = envJiraDefaults();
   return {
     defaults,
     jira,
+    google,
     catalog: [
       {
         id: 'jira',
@@ -99,8 +129,47 @@ export async function listConnectors(userId: string): Promise<{
         connected: jira.connected,
         available: true,
       },
+      {
+        id: 'google',
+        name: 'Google Meet',
+        description:
+          'Schedule Meet calls with invites, join via Meet link, sync recordings/transcripts, and generate MoM.',
+        connected: google.connected,
+        available: googleOAuthConfigured(),
+      },
     ],
   };
+}
+
+/** Mark Google connector connected after OAuth returns with Calendar/Drive scopes. */
+export async function markGoogleConnected(userId: string): Promise<PublicGoogleConnector> {
+  const live = await googleMeetConnected(userId);
+  if (!live.connected) {
+    throw new Error(
+      live.missingScopes
+        ? 'Google is linked but missing Calendar/Drive scopes. Connect again and accept all permissions.'
+        : 'Sign in with Google and grant Calendar + Drive access first.',
+    );
+  }
+  const stored = await loadStoredConnectors(userId);
+  const next: StoredConnectors = {
+    ...stored,
+    google: {
+      connectedAt: new Date().toISOString(),
+      email: live.email,
+      scopes: live.scopes,
+    },
+  };
+  await saveStoredConnectors(userId, next);
+  return toPublicGoogle(next, live);
+}
+
+export async function disconnectGoogle(userId: string): Promise<PublicGoogleConnector> {
+  const stored = await loadStoredConnectors(userId);
+  const { google: _removed, ...rest } = stored;
+  await saveStoredConnectors(userId, rest);
+  const live = await googleMeetConnected(userId);
+  return toPublicGoogle(rest, { ...live, connected: false });
 }
 
 export async function connectJira(

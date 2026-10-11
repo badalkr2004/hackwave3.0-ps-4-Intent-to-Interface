@@ -162,6 +162,18 @@ export const organizationAuditLog = appSchema.table('organization_audit_log', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export type GoogleMeetingAttendee = {
+  email: string;
+  displayName?: string | null;
+  responseStatus?: string | null;
+};
+
+export type GoogleMeetingAttendance = {
+  email: string;
+  displayName?: string | null;
+  responseStatus?: string | null;
+};
+
 export type StoredConnectors = {
   jira?: {
     baseUrl: string;
@@ -172,7 +184,45 @@ export type StoredConnectors = {
     displayName?: string;
     connectedAt: string;
   };
+  google?: {
+    connectedAt: string;
+    email?: string;
+    scopes?: string;
+  };
 };
+
+export const googleMeeting = appSchema.table('google_meeting', {
+  id: text('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organization.id, { onDelete: 'cascade' }),
+  createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+  calendarEventId: text('calendar_event_id').notNull(),
+  meetLink: text('meet_link'),
+  htmlLink: text('html_link'),
+  title: text('title').notNull(),
+  startsAt: timestamp('starts_at').notNull(),
+  endsAt: timestamp('ends_at').notNull(),
+  attendees: jsonb('attendees').$type<GoogleMeetingAttendee[]>().notNull().default([]),
+  clientId: text('client_id'),
+  recordingFileId: text('recording_file_id'),
+  recordingUrl: text('recording_url'),
+  transcriptFileId: text('transcript_file_id'),
+  transcriptText: text('transcript_text'),
+  attendance: jsonb('attendance').$type<GoogleMeetingAttendance[]>().notNull().default([]),
+  status: text('status')
+    .$type<'scheduled' | 'completed' | 'cancelled'>()
+    .notNull()
+    .default('scheduled'),
+  meetingMinutesId: text('meeting_minutes_id').references(() => meetingMinutes.id, {
+    onDelete: 'set null',
+  }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
 
 export const userWorkspacePrefs = appSchema.table('user_workspace_prefs', {
   userId: text('user_id')
