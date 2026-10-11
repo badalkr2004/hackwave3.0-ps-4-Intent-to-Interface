@@ -18,6 +18,7 @@ import { IntentBar } from './shell/IntentBar';
 import { StackChip } from './shell/StackChip';
 import { WhyDrawer } from './shell/WhyDrawer';
 import { WhyToggle } from './shell/WhyToggle';
+import { ThemeToggle } from './shell/ThemeToggle';
 import { ZoneGrid } from './shell/ZoneGrid';
 import { VitalsBar } from './shell/VitalsBar';
 import { useWorkspace } from './store/workspace';
@@ -162,6 +163,7 @@ function WorkspaceApp({
               <span className="hidden sm:inline">Export brief</span>
             </button>
             <WhyToggle on={s.lensOn} onToggle={s.toggleLens} />
+            <ThemeToggle />
             <AuthMenu activeOrg={activeOrg} onAuthChange={onAuthChange} />
           </div>
         </header>

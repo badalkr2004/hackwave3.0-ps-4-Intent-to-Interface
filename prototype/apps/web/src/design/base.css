@@ -175,7 +175,9 @@
     box-shadow:
       0 1px 2px rgba(0, 0, 0, 0.04),
       0 0 0 0.5px rgba(0, 0, 0, 0.03);
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .sheet:hover {
@@ -183,6 +185,134 @@
     box-shadow:
       0 2px 4px rgba(0, 0, 0, 0.06),
       0 0 0 0.5px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Groq Console Inspired Dark Mode — Card Hover Effects & Dynamic Glow */
+  :root[data-theme='dark'] .sheet {
+    box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.7);
+  }
+
+  :root[data-theme='dark'] .sheet:hover {
+    transform: translateY(-2px);
+    border-color: var(--panel-glow-border, var(--border-strong));
+    box-shadow:
+      0 12px 28px -6px rgba(0, 0, 0, 0.85),
+      0 0 20px -3px var(--panel-glow, rgba(249, 115, 22, 0.15));
+  }
+
+  /* Bespoke Panel Glow Variants inspired by Groq Console cards (Docs, Playground, Team, etc.) */
+  :root[data-theme='dark'] [data-panel-type='usage_trend']:hover {
+    --panel-glow-border: rgba(6, 182, 212, 0.65); /* Cyan / Playground */
+    --panel-glow: rgba(6, 182, 212, 0.25);
+  }
+
+  :root[data-theme='dark'] [data-panel-type='portfolio_health']:hover {
+    --panel-glow-border: rgba(249, 115, 22, 0.7); /* Groq Flame */
+    --panel-glow: rgba(249, 115, 22, 0.25);
+  }
+
+  :root[data-theme='dark'] [data-panel-type='sales_pulse']:hover {
+    --panel-glow-border: rgba(245, 158, 11, 0.7); /* Radiant Amber / Docs */
+    --panel-glow: rgba(245, 158, 11, 0.25);
+  }
+
+  :root[data-theme='dark'] [data-panel-type='upcoming_meetings']:hover {
+    --panel-glow-border: rgba(129, 140, 248, 0.7); /* Electric Indigo / Team */
+    --panel-glow: rgba(129, 140, 248, 0.25);
+  }
+
+  :root[data-theme='dark'] [data-panel-type='segment_breakdown']:hover {
+    --panel-glow-border: rgba(20, 184, 166, 0.65); /* Teal */
+    --panel-glow: rgba(20, 184, 166, 0.25);
+  }
+
+  :root[data-theme='dark'] [data-panel-type='open_issues']:hover {
+    --panel-glow-border: rgba(248, 113, 113, 0.7); /* Rose / Danger */
+    --panel-glow: rgba(248, 113, 113, 0.25);
+  }
+
+  :root[data-theme='dark'] [data-panel-type='workload_bars']:hover {
+    --panel-glow-border: rgba(168, 85, 247, 0.7); /* Purple */
+    --panel-glow: rgba(168, 85, 247, 0.25);
+  }
+
+  :root[data-theme='dark'] [data-panel-type='client_snapshot']:hover {
+    --panel-glow-border: rgba(56, 189, 248, 0.7); /* Sky Blue */
+    --panel-glow: rgba(56, 189, 248, 0.25);
+  }
+
+  :root[data-theme='dark'] [data-panel-type='hypothesis_list']:hover {
+    --panel-glow-border: rgba(52, 211, 153, 0.7); /* Emerald */
+    --panel-glow: rgba(52, 211, 153, 0.25);
+  }
+
+  :root[data-theme='dark'] [data-panel-type='talking_points']:hover {
+    --panel-glow-border: rgba(251, 191, 36, 0.7); /* Warm Gold */
+    --panel-glow: rgba(251, 191, 36, 0.25);
+  }
+
+  /* Glowing Charts & Visualizations in Dark Mode */
+  :root[data-theme='dark'] .sparkline-path {
+    filter: drop-shadow(0 0 5px var(--accent)) drop-shadow(0 0 10px rgba(249, 115, 22, 0.3));
+  }
+
+  :root[data-theme='dark'] .sparkline-dot {
+    filter: drop-shadow(0 0 6px var(--accent)) drop-shadow(0 0 12px var(--accent));
+  }
+
+  :root[data-theme='dark'] .recharts-line-curve {
+    filter: drop-shadow(0 0 6px var(--accent));
+  }
+
+  :root[data-theme='dark'] .recharts-active-dot circle {
+    filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 14px var(--accent));
+  }
+
+  :root[data-theme='dark'] .recharts-bar-rectangle path {
+    filter: drop-shadow(0 0 4px rgba(249, 115, 22, 0.35));
+    transition: filter 0.2s ease;
+  }
+
+  :root[data-theme='dark'] .recharts-bar-rectangle:hover path {
+    filter: drop-shadow(0 0 10px rgba(249, 115, 22, 0.75));
+  }
+
+  :root[data-theme='dark'] .recharts-pie-sector path {
+    filter: drop-shadow(0 0 5px rgba(249, 115, 22, 0.3));
+    transition: filter 0.2s ease;
+  }
+
+  :root[data-theme='dark'] .recharts-pie-sector:hover path {
+    filter: drop-shadow(0 0 12px rgba(249, 115, 22, 0.7));
+  }
+
+  :root[data-theme='dark'] .recharts-default-tooltip {
+    background-color: var(--surface) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.8), 0 0 14px -2px rgba(249, 115, 22, 0.25) !important;
+  }
+
+  /* Glowing Meters & Status Bars */
+  :root[data-theme='dark'] .meter-glow-accent {
+    box-shadow: 0 0 10px 1px rgba(249, 115, 22, 0.65);
+  }
+
+  :root[data-theme='dark'] .meter-glow-danger {
+    box-shadow: 0 0 10px 1px rgba(248, 113, 113, 0.7);
+  }
+
+  :root[data-theme='dark'] .meter-glow-warn {
+    box-shadow: 0 0 10px 1px rgba(251, 191, 36, 0.7);
+  }
+
+  :root[data-theme='dark'] .meter-glow-success {
+    box-shadow: 0 0 10px 1px rgba(52, 211, 153, 0.7);
+  }
+
+  /* Vitals & Status Icon Glows */
+  :root[data-theme='dark'] .group\/vital:hover .vital-icon {
+    filter: drop-shadow(0 0 6px currentColor);
   }
 
   /* Enterprise auth / onboarding: atmospheric brand plane + calm form column. */

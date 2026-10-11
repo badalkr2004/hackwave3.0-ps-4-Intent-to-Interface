@@ -90,9 +90,9 @@ export function VitalsBar({ spec }: { spec: UISpec | null }) {
         return (
           <div
             key={v.label}
-            className="flex items-center gap-1.5 text-xs"
+            className="group/vital flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-all duration-150 hover:bg-surface hover:shadow-sm"
           >
-            <Icon className={`size-3.5 ${tone}`} aria-hidden />
+            <Icon className={`size-3.5 ${tone} vital-icon transition-transform duration-150 group-hover/vital:scale-110`} aria-hidden />
             <span className="font-medium text-text tabular-nums">{v.value}</span>
             <span className="text-muted">{v.label}</span>
           </div>

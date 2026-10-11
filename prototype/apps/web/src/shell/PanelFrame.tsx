@@ -148,6 +148,7 @@ export const PanelFrame = forwardRef<HTMLElement, PanelFrameProps>(function Pane
       aria-labelledby={headingId}
       aria-busy={panel.status === 'loading' || undefined}
       data-panel-id={panel.id}
+      data-panel-type={panel.componentId}
       className={`group flex flex-col overflow-hidden sheet ${panel.size === 'L' ? 'panel-rule-l' : ''} ${SIZE_CLASSES[panel.size]}`}
     >
       <header className="flex items-start gap-2 px-4 pt-3 pb-2.5 border-b border-border/40">

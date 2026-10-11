@@ -34,9 +34,9 @@ export function SegmentBreakdown({ props, size }: PanelViewProps<'segment_breakd
                         {s.label}
                         {i === 0 && down && <span className="sr-only"> (largest drop)</span>}
                       </span>
-                      <span aria-hidden className="h-3 rounded-sm bg-surface-2">
+                      <span aria-hidden className="h-3 rounded-sm bg-surface-2 overflow-hidden">
                         <span
-                          className={`block h-full rounded-sm ${down ? (i === 0 ? 'bg-danger' : 'bg-border-strong') : 'bg-success'}`}
+                          className={`block h-full rounded-sm transition-all duration-300 ${down ? (i === 0 ? 'bg-danger meter-glow-danger' : 'bg-border-strong') : 'bg-success meter-glow-success'}`}
                           style={{ width: `${width}%` }}
                         />
                       </span>

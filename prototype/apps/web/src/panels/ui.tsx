@@ -283,10 +283,10 @@ export function Meter({
   marker?: number;
 }) {
   const fill = {
-    accent: 'bg-accent',
-    danger: 'bg-danger',
-    warn: 'bg-warn',
-    success: 'bg-success',
+    accent: 'bg-accent meter-glow-accent',
+    danger: 'bg-danger meter-glow-danger',
+    warn: 'bg-warn meter-glow-warn',
+    success: 'bg-success meter-glow-success',
     muted: 'bg-border-strong',
   }[tone];
   const pct = Math.max(0, Math.min(100, (value / max) * 100));

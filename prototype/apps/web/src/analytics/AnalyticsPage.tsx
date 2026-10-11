@@ -7,6 +7,7 @@ import {
   PieChart as PieIcon,
   Filter,
 } from 'lucide-react';
+import { ThemeToggle } from '../shell/ThemeToggle';
 import {
   Bar,
   BarChart,
@@ -237,6 +238,9 @@ export function AnalyticsPage() {
               ))}
             </select>
           </label>
+          <div className="mt-auto">
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

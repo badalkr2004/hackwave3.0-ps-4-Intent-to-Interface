@@ -97,6 +97,7 @@ function Sparkline({ series }: { series: Point[] }) {
         vectorEffect="non-scaling-stroke"
         strokeLinecap="round"
         strokeLinejoin="round"
+        className="sparkline-path"
       />
       {/* end dot */}
       {lastPt && (
@@ -106,6 +107,7 @@ function Sparkline({ series }: { series: Point[] }) {
           r="1.5"
           fill="var(--accent)"
           vectorEffect="non-scaling-stroke"
+          className="sparkline-dot"
         >
           <animate
             attributeName="r"
